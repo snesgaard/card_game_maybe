@@ -42,6 +42,11 @@ function im_tween:set_speed(speed)
     return self
 end
 
+function im_tween:set_ease(ease)
+    self.ease = ease
+    return self
+end
+
 function im_tween:set_min_distance(min_distance)
     self.min_distance = min_distance
     return self
@@ -65,7 +70,7 @@ function im_tween:move_to(id, value)
     local to = value
     local sq_dist = compute_square_distance(from, to)
     local time = math.sqrt(sq_dist) / self.speed
-    self:set(id, from, to, time, self.default_ease)
+    self:set(id, from, to, time, self.ease)
     return self:get(id)
 end
 
@@ -78,6 +83,11 @@ function im_tween:get(id)
     local t = self.tweens[id]
     if not t then return end
     return t:value()
+end
+
+function im_tween:ensure(id, default_value)
+    local value = self:get(id)
+    return value ~= nil and value or self:move_to(id, default_value)
 end
 
 function im_tween:update(dt)

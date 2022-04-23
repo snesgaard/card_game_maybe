@@ -18,4 +18,5 @@ end
 
 function love.draw()
     world:emit("draw"):resolve()
+    world:emit("draw:ui"):resolve()
 end

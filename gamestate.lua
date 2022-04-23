@@ -22,6 +22,13 @@ function gamestate:set(component, id, ...)
     return next_state
 end
 
+function gamestate:map(component, id, func, ...)
+    local value = self:get(component, id)
+    if not value then return self end
+    local next_value = func(value, ...)
+    return self:set(component, id, next_value)
+end
+
 function gamestate:clear(id)
     local next_state = gamestate.create(self)
     for component, dict in pairs(next_state) do
