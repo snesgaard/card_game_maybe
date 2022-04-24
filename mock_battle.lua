@@ -3,118 +3,83 @@ local gamestate = require "gamestate"
 local component = require "component"
 local imtween = require "im_tween"
 
-local id = {player="player", bad_guy="bad_guy"}
-
-local player_options = {a = "attack", d = "defend", h = "heal"}
-
-local function print_player_options(ctx)
-    print("")
-    print("select an action:")
-    for key, action in pairs(player_options) do
-        printf("%s :: %s", key, action)
-    end
+local function actor_position(index)
+    local w, h = gfx.getWidth(), gfx.getHeight()
+    local mid = spatial(w / 2, h, 0, 0):move(0, -40)
+    if index == 0 then return mid end
+    local s = index < 0 and -1 or 1
+    return mid:move(s * (200 + 60 * (math.abs(index) - 1)), 0)
 end
 
-local function handle_player_input(ctx)
-    for _, event in ipairs(ctx:read_event("keypressed")) do
-        local key = event:unpack()
-        local action = player_options[key]
-        if action then
-            return action
-        else
-            --printf("key %s does not map to action", key)
-        end
-    end
+local function draw_actor(x, y)
+    local w, h = 50, 200
+    gfx.rectangle("fill", x - w / 2, y - h, w, h)
 end
 
-local function player_action(ctx)
-    print_player_options(ctx)
-    while ctx.alive do
-        local action = handle_player_input(ctx)
-        if action then
-            print("Player did a thing:", action)
-            return action
-        end
-        ctx:yield()
-    end
-end
-
-local function ai_action(ctx)
-    print("the ai did something")
-end
+local id = {
+    player = {},
+    enemy = {},
+    field = {}
+}
 
 local function initial_gamestate()
     return gamestate.state()
-        :set(component.health, id.player, 5)
+        :set(component.health, id.player, 10)
+        :set(component.health, id.enemy, 20)
         :set(component.max_health, id.player, 10)
-        :set(component.health, id.bad_guy, 10)
-        :set(component.max_health, id.bad_guy, 10)
+        :set(component.max_health, id.enemy, 20)
+        :set(component.party_order, id.field, {id.player})
+        :set(component.enemy_order, id.field, {id.enemy})
 end
 
-local function layout()
-    local w, h = gfx.getWidth(), gfx.getHeight()
-    local mid = spatial(w * 0.5, h, 0, 0)
-        :move(0, -40)
-        :expand(50, 200, "center", "bottom")
+local function draw_gamestate(ctx, gamestate)
+    local party_order = gamestate:get(component.party_order, id.field)
+    local enemy_order = gamestate:get(component.enemy_order, id.field)
 
-    return {
-        [id.player] = mid:move(-200, 0),
-        [id.bad_guy] = mid:move(200, 0)
-    }
-end
-
-local function draw_scene(ctx)
-    local pos_tween = ctx.visual_state.tweens.position
-
-    local layout = layout()
-    local bad_offset = pos_tween:ensure(id.bad_guy, vec2())
-    local player_offset = pos_tween:ensure(id.player, vec2())
-
-    gfx.setColor(0.8, 0.4, 0.2)
-    gfx.rectangle(
-        "fill", layout[id.bad_guy]:move(bad_offset.x, bad_offset.y):unpack()
-    )
     gfx.setColor(0.2, 0.4, 0.8)
-    gfx.rectangle(
-        "fill", layout[id.player]:move(player_offset.x, player_offset.y):unpack()
-    )
-end
-
-
-local function update(ctx, dt)
-    for _, tween in pairs(ctx.visual_state.tweens) do
-        tween:update(dt)
+    for index, id in ipairs(party_order) do
+        local position = actor_position(-index)
+        local offset = ctx.pos_tweens:ensure(id, vec2())
+        draw_actor(position.x + offset.x, position.y + offset.y)
+    end
+    gfx.setColor(0.8, 0.4, 0.2)
+    for index, id in ipairs(enemy_order) do
+        local position = actor_position(index)
+        draw_actor(position.x, position.y)
     end
 end
 
-local function reponse(ctx, visual_state)
-    ctx.visual_state = visual_state
-    while ctx.alive do
-        ctx:visit_event("update", update)
-        ctx:visit_event("draw", draw_scene)
-        ctx:yield()
-    end
+local function animate_attack(ctx)
+    ctx.pos_tweens:move_to(id.player, vec2(100, 0))
+    while not ctx.pos_tweens:is_done(id.player) do ctx:yield() end
+    ctx.pos_tweens:move_to(id.player, vec2(0, 0))
+    while not ctx.pos_tweens:is_done(id.player) do ctx:yield() end
 end
 
 return function(ctx)
     ctx.gamestate = initial_gamestate()
+    ctx.pos_tweens = imtween()
+        :set_speed(200)
 
-    ctx.visual_state = {
-        tweens = {
-            position = imtween()
-        }
-    }
+    local draw = ctx:listen("draw")
+        :foreach(function() draw_gamestate(ctx, ctx.gamestate) end)
 
-    ctx:fork(require "ui.healthbar", id.player)
-    ctx:fork(reponse, ctx.visual_state)
+    local update_tween = ctx:listen("update")
+        :foreach(function(dt) ctx.pos_tweens:update(dt) end)
+
+    local cooldown = ctx:listen("update")
+        :reduce(function(agg, dt) return agg - dt end, 0.2)
+
+    local perform_attack = ctx:listen("keypressed")
+        :filter(function(key) return key == "a" end)
+        :foreach(function() cooldown:reset() end)
+        :latest()
+
 
     while ctx.alive do
-        ctx:emit("gamestate_step", ctx.gamestate)
-
-        local action = player_action(ctx)
-        ctx.gamestate = ctx.gamestate:map(
-            component.health, id.player, function(hp) return hp - 1 end
-        )
-        ai_action(ctx)
+        if perform_attack:pop() and cooldown:peek() > 0 then
+            animate_attack(ctx)
+        end
+        ctx:yield()
     end
 end

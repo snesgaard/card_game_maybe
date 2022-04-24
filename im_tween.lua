@@ -85,9 +85,16 @@ function im_tween:get(id)
     return t:value()
 end
 
+function im_tween:is_done(id)
+    local t = self.tweens[id]
+    if not t then return true end
+    return t:is_done()
+end
+
 function im_tween:ensure(id, default_value)
     local value = self:get(id)
-    return value ~= nil and value or self:move_to(id, default_value)
+    if value then return value end
+    return self:move_to(id, default_value)
 end
 
 function im_tween:update(dt)

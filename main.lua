@@ -4,7 +4,7 @@ local mock_battle = require "mock_battle"
 
 function love.load()
     world = nw.ecs.world()
-    world:push(nw.system.tween):push(mock_battle)
+    world:push(mock_battle)
 end
 
 function love.keypressed(key)
@@ -13,10 +13,10 @@ function love.keypressed(key)
 end
 
 function love.update(dt)
-    world:emit("update", dt):resolve()
+    world:emit("update", dt):spin()
 end
 
 function love.draw()
-    world:emit("draw"):resolve()
-    world:emit("draw:ui"):resolve()
+    world:emit("draw"):spin()
+    world:emit("draw:ui"):spin()
 end
