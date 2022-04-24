@@ -138,14 +138,14 @@ function layer_type.pool(layer)
     gfx.pop()
 end
 
-local function draw_layer(layer)
+local function draw_layer(layer, ...)
     local func = layer:get(nw.component.layer_type)
     if not func then return end
-    func(layer)
+    func(layer, ...)
 end
 
-local function render(layers)
-    for _, layer in ipairs(layers) do draw_layer(layer) end
+local function render(layers, ...)
+    for _, layer in ipairs(layers) do draw_layer(layer, ...) end
 end
 
 local function compute_vertical_offset(valign, font_h, h)
@@ -211,7 +211,11 @@ local function draw_card(x, y)
     gfx.pop()
 end
 
-local func
+local function card_size()
+    local frame = get_atlas("art/characters"):get_frame("card")
+    local s = constants.scale
+    return frame.slices.body:scale(s)
+end
 
 
 return {
@@ -221,5 +225,6 @@ return {
     push = push,
     draw_card = draw_card,
     fonts = fonts,
-    draw_text = draw_text
+    draw_text = draw_text,
+    card_size = card_size
 }

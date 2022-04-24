@@ -57,7 +57,7 @@ function im_tween:set(id, from, to, duration, ease)
     return self
 end
 
-function im_tween:move_to(id, value)
+function im_tween:move_to(id, value, time)
     local t = self.tweens[id]
     if not t then return self:warp_to(id, value) end
 
@@ -69,7 +69,7 @@ function im_tween:move_to(id, value)
     local from = t:value()
     local to = value
     local sq_dist = compute_square_distance(from, to)
-    local time = math.sqrt(sq_dist) / self.speed
+    local time = time or math.sqrt(sq_dist) / self.speed
     self:set(id, from, to, time, self.ease)
     return self:get(id)
 end

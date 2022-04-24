@@ -3,6 +3,7 @@ local gamestate = require "gamestate"
 local component = require "component"
 local imtween = require "im_tween"
 local render = require "render"
+local ui = require "ui"
 
 local function actor_position(index)
     local w, h = gfx.getWidth(), gfx.getHeight()
@@ -70,18 +71,102 @@ local function draw_gamestate(entity)
     end
 end
 
+local function card_keymap()
+    local keymap = {left = {}, right = {}}
 
+    for i = 1, 10 do
+        keymap.left[i] = i - 1
+        keymap.right[i] = i + 1
+    end
 
-local function draw_card_layer(layer)
+    keymap.left[1] = 10
+    keymap.right[10] = 1
+
+    keymap.left.default = 10
+    keymap.right.default = 1
+
+    return keymap
+end
+
+local function draw_card_layer(layer, ctx)
     gfx.push("all")
     render.push.state(layer)
-    render.draw_card(50, 50)
-    render.draw_card(350, 50)
-    render.draw_card(650, 50)
-    render.draw_card(950, 50)
-    render.draw_card(1250, 50)
-    render.draw_card(1550, 50)
+
+    local body = render.card_size()
+    local dx = body.w / 2
+
+    gfx.setColor(1, 1, 1)
+    gfx.rectangle(
+        "fill", spatial(gfx.getWidth() / 2, 0, 0, gfx.getHeight()):expand(2, 0):unpack()
+    )
+
+    for i = 1, (ctx.count or 10) do
+        local x, y = ctx.pos_tweens:get(i):unpack()
+        if i == ctx.selected then
+            gfx.setColor(0, 1, 0)
+            gfx.rectangle("fill", body:move(x, y):expand(10, 10):unpack())
+        end
+        gfx.setColor(1, 1, 1)
+        render.draw_card(x, y)
+    end
     gfx.pop()
+end
+
+local function selection_offset(index, selected)
+    if not selected then return vec2() end
+    local body = render.card_size()
+    local dx = body.w / 2 + 10
+
+    local diff = math.abs(index - selected)
+    if index < selected then return vec2(-dx / diff, 0) end
+    if selected < index then return vec2(dx / diff, 0) end
+
+    return vec2(0, -150)
+end
+
+local function card_selection_update(ctx, dt)
+    local count = ctx.count or 10
+    local w, h = gfx.getWidth(), gfx.getHeight()
+    local mid = spatial(w * 0.5, h, 0, 0)
+
+    local body = render.card_size()
+    local dx = body.w / 2
+    local last_x = body.w + dx * (count - 1)
+    local mid_x = last_x / 2
+    local ox = mid.x - mid_x
+
+
+    for i = 1, count do
+        local px = vec2(dx * (i - 1) + ox, 850)
+        local ox = selection_offset(i, ctx.selected)
+        ctx.pos_tweens:move_to(i, px + ox, 0.1)
+    end
+end
+
+local function card_selection(ctx)
+    ctx.selected = 1
+    ctx.count = 10
+
+    local keypressed = ctx:listen("keypressed"):collect()
+    local update = ctx:listen("update"):collect()
+    local degrade = ctx:listen("keypressed")
+        :filter(function(key) return key == "d" end)
+        :latest()
+
+    while ctx.alive do
+        for _, event in ipairs(keypressed:pop()) do
+            ctx.selected = ui.key(ctx.selected, card_keymap(), unpack(event))
+        end
+
+        if degrade:pop() then ctx.count = ctx.count -1 end
+
+        for _, event in ipairs(update:pop()) do
+            card_selection_update(ctx, unpack(event))
+        end
+
+
+        ctx:yield()
+    end
 end
 
 local function setup_visual_state(gamestate)
@@ -104,7 +189,7 @@ end
 return function(ctx)
     ctx.gamestate = initial_gamestate()
     ctx.pos_tweens = imtween()
-        :set_speed(200)
+        :set_speed(1000)
     ctx.visual_state = setup_visual_state(ctx.gamestate)
 
     local draw = ctx:listen("draw")
@@ -114,11 +199,14 @@ return function(ctx)
                     layer_order,
                     function(id) return ctx.visual_state:entity(id) end
                 )
-                render.render(layer_entities)
+                render.render(layer_entities, ctx)
             end)
+    local update = ctx:listen("update")
+        :foreach(function(dt) ctx.pos_tweens:update(dt) end)
 
 
     while ctx.alive do
+        card_selection(ctx)
         ctx:yield()
     end
 end
