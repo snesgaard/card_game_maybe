@@ -1,4 +1,5 @@
 local nw = require "nodeworks"
+local constants = require "constants"
 
 local read = {}
 
@@ -147,8 +148,78 @@ local function render(layers)
     for _, layer in ipairs(layers) do draw_layer(layer) end
 end
 
+local function compute_vertical_offset(valign, font_h, h)
+    if valign == "top" then
+		return 0
+	elseif valign == "bottom" then
+		return h - font_h
+    else
+        return (h - font_h) / 2
+	end
+end
+
+local function draw_text(text, x, y, w, h, opt, sx, sy)
+    local opt = opt or {}
+    if opt.font then gfx.setFont(opt.font) end
+
+    local dy = compute_vertical_offset(
+        opt.valign, gfx.getFont():getHeight() * sx, h
+    )
+
+    gfx.printf(text, x, y + dy, w / sx, opt.align or "left", 0, sx, sy)
+end
+
+local card_font = gfx.newFont("art/fonts/smol.ttf", 20)
+local title_font = gfx.newFont("art/fonts/smol.ttf", 22)
+
+local function draw_card(x, y)
+    local frame = get_atlas("art/characters"):get_frame("card")
+    local s = constants.scale
+    gfx.push()
+    gfx.translate(x, y)
+    gfx.scale(s)
+
+
+    local bg_color = gfx.hex2color("9567c1")
+    gfx.setColor(bg_color)
+    gfx.rectangle("fill", frame.slices.image:unpack())
+
+    gfx.setColor(1, 1, 1)
+    frame:draw(0, 0)
+
+    local text_slice = frame.slices.text
+    local black = gfx.hex2color("f2eee3")
+    local key = gfx.hex2color("a9dc54")
+    local text = {
+        key, "Necromancy ", black, "5.\n",
+        black, "Deal 16 ", key, "damage.\n",
+    }
+    gfx.setFont(card_font)
+
+    gfx.setColor(1, 1, 1)
+    gfx.printf(
+        text, text_slice.x, text_slice.y, text_slice.w * s,
+        "center", 0, 1 / s
+    )
+
+    local title_slice = frame.slices.title
+    local title = "Magic Swordsman"
+    draw_text(
+        title, title_slice.x, title_slice.y, title_slice.w , title_slice.h,
+        {font=title_font, align="center", valign="middle"}, 1 / s
+    )
+    gfx.pop()
+end
+
+local func
+
+
 return {
     layer_type = layer_type,
     render = render,
-    draw_layer = draw_layer
+    draw_layer = draw_layer,
+    push = push,
+    draw_card = draw_card,
+    fonts = fonts,
+    draw_text = draw_text
 }

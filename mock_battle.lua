@@ -32,12 +32,14 @@ local actions = {
 local layer_id = {
     background = {},
     field = {},
+    cards = {},
     overlay = {}
 }
 
 local layer_order = {
     layer_id.background,
     layer_id.field,
+    layer_id.cards
 }
 
 
@@ -68,6 +70,20 @@ local function draw_gamestate(entity)
     end
 end
 
+
+
+local function draw_card_layer(layer)
+    gfx.push("all")
+    render.push.state(layer)
+    render.draw_card(50, 50)
+    render.draw_card(350, 50)
+    render.draw_card(650, 50)
+    render.draw_card(950, 50)
+    render.draw_card(1250, 50)
+    render.draw_card(1550, 50)
+    gfx.pop()
+end
+
 local function setup_visual_state(gamestate)
     local visual_state = nw.ecs.entity()
 
@@ -77,7 +93,10 @@ local function setup_visual_state(gamestate)
 
     visual_state:entity(layer_id.background)
         :set(nw.component.layer_type, render.layer_type.color)
-        :set(nw.component.color, 0.1, 0.1, 0.1)
+        :set(nw.component.color, 0.5, 0.5, 0.5)
+
+    visual_state:entity(layer_id.cards)
+        :set(nw.component.layer_type, draw_card_layer)
 
     return visual_state
 end
