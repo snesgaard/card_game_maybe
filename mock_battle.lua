@@ -22,6 +22,12 @@ local id = {
     field = {}
 }
 
+local actions = {
+    attack = "attack",
+    defend = "defend",
+    heal = "heal"
+}
+
 local function initial_gamestate()
     return gamestate.state()
         :set(component.health, id.player, 10)
@@ -56,6 +62,21 @@ local function animate_attack(ctx)
     while not ctx.pos_tweens:is_done(id.player) do ctx:yield() end
 end
 
+local function select_player_action(ctx)
+    local draw = ctx:listen("draw"):collect()
+    local interrupt = ctx:listen("keypressed")
+        :filter(function(key) return key == "a" end)
+        :latest()
+
+    while not interrupt:peek() and ctx:is_alive() do
+        for _, _ in ipairs(draw:peek()) do
+            gfx.setColor(0.5, 0.5, 0.5)
+            gfx.rectangle("fill", 0, 0, 100, 100)
+        end
+        ctx:yield()
+    end
+end
+
 return function(ctx)
     ctx.gamestate = initial_gamestate()
     ctx.pos_tweens = imtween()
@@ -77,9 +98,9 @@ return function(ctx)
 
 
     while ctx.alive do
-        if perform_attack:pop() and cooldown:peek() > 0 then
-            animate_attack(ctx)
-        end
+        local player_action = select_player_action(ctx)
+        animate_attack(ctx)
+        --local enemy_action = select_enemy_action(ctx)
         ctx:yield()
     end
 end
