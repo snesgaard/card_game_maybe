@@ -2,6 +2,7 @@ local nw = require "nodeworks"
 local gamestate = require "gamestate"
 local component = require "component"
 local imtween = require "im_tween"
+local render = require "render"
 
 local function actor_position(index)
     local w, h = gfx.getWidth(), gfx.getHeight()
@@ -28,6 +29,18 @@ local actions = {
     heal = "heal"
 }
 
+local layer_id = {
+    background = {},
+    field = {},
+    overlay = {}
+}
+
+local layer_order = {
+    layer_id.background,
+    layer_id.field,
+}
+
+
 local function initial_gamestate()
     return gamestate.state()
         :set(component.health, id.player, 10)
@@ -38,15 +51,15 @@ local function initial_gamestate()
         :set(component.enemy_order, id.field, {id.enemy})
 end
 
-local function draw_gamestate(ctx, gamestate)
+local function draw_gamestate(entity)
+    local gamestate = entity:get(component.gamestate)
     local party_order = gamestate:get(component.party_order, id.field)
     local enemy_order = gamestate:get(component.enemy_order, id.field)
 
     gfx.setColor(0.2, 0.4, 0.8)
     for index, id in ipairs(party_order) do
         local position = actor_position(-index)
-        local offset = ctx.pos_tweens:ensure(id, vec2())
-        draw_actor(position.x + offset.x, position.y + offset.y)
+        draw_actor(position.x, position.y)
     end
     gfx.setColor(0.8, 0.4, 0.2)
     for index, id in ipairs(enemy_order) do
@@ -55,52 +68,38 @@ local function draw_gamestate(ctx, gamestate)
     end
 end
 
-local function animate_attack(ctx)
-    ctx.pos_tweens:move_to(id.player, vec2(100, 0))
-    while not ctx.pos_tweens:is_done(id.player) do ctx:yield() end
-    ctx.pos_tweens:move_to(id.player, vec2(0, 0))
-    while not ctx.pos_tweens:is_done(id.player) do ctx:yield() end
-end
+local function setup_visual_state(gamestate)
+    local visual_state = nw.ecs.entity()
 
-local function select_player_action(ctx)
-    local draw = ctx:listen("draw"):collect()
-    local interrupt = ctx:listen("keypressed")
-        :filter(function(key) return key == "a" end)
-        :latest()
+    visual_state:entity(layer_id.field)
+        :set(nw.component.layer_type, draw_gamestate)
+        :set(component.gamestate, gamestate)
 
-    while not interrupt:peek() and ctx:is_alive() do
-        for _, _ in ipairs(draw:peek()) do
-            gfx.setColor(0.5, 0.5, 0.5)
-            gfx.rectangle("fill", 0, 0, 100, 100)
-        end
-        ctx:yield()
-    end
+    visual_state:entity(layer_id.background)
+        :set(nw.component.layer_type, render.layer_type.color)
+        :set(nw.component.color, 0.1, 0.1, 0.1)
+
+    return visual_state
 end
 
 return function(ctx)
     ctx.gamestate = initial_gamestate()
     ctx.pos_tweens = imtween()
         :set_speed(200)
+    ctx.visual_state = setup_visual_state(ctx.gamestate)
 
     local draw = ctx:listen("draw")
-        :foreach(function() draw_gamestate(ctx, ctx.gamestate) end)
-
-    local update_tween = ctx:listen("update")
-        :foreach(function(dt) ctx.pos_tweens:update(dt) end)
-
-    local cooldown = ctx:listen("update")
-        :reduce(function(agg, dt) return agg - dt end, 0.2)
-
-    local perform_attack = ctx:listen("keypressed")
-        :filter(function(key) return key == "a" end)
-        :foreach(function() cooldown:reset() end)
-        :latest()
+        :foreach(
+            function()
+                local layer_entities = List.map(
+                    layer_order,
+                    function(id) return ctx.visual_state:entity(id) end
+                )
+                render.render(layer_entities)
+            end)
 
 
     while ctx.alive do
-        local player_action = select_player_action(ctx)
-        animate_attack(ctx)
-        --local enemy_action = select_enemy_action(ctx)
         ctx:yield()
     end
 end

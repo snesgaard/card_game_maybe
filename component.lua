@@ -8,4 +8,6 @@ function component.party_order(order) return order or {} end
 
 function component.enemy_order(order) return order or {} end
 
+function component.gamestate(gs) return gs end
+
 return component
