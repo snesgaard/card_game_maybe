@@ -4,10 +4,11 @@ local component = require "component"
 local imtween = require "im_tween"
 local render = require "render"
 local ui = require "ui"
+local cards = require "cards"
 
 local function actor_position(index)
     local w, h = gfx.getWidth(), gfx.getHeight()
-    local mid = spatial(w / 2, h, 0, 0):move(0, -40)
+    local mid = spatial(w / 2, h, 0, 0):move(0, -400)
     if index == 0 then return mid end
     local s = index < 0 and -1 or 1
     return mid:move(s * (200 + 60 * (math.abs(index) - 1)), 0)
@@ -104,10 +105,10 @@ local function draw_card_layer(layer, ctx)
         local x, y = ctx.pos_tweens:get(i):unpack()
         if i == ctx.selected then
             gfx.setColor(0, 1, 0)
-            gfx.rectangle("fill", body:move(x, y):expand(10, 10):unpack())
+            gfx.rectangle("fill", body:move(x, y):expand(10, 10):unpack(5))
         end
         gfx.setColor(1, 1, 1)
-        render.draw_card(x, y)
+        render.draw_card(x, y, cards.shovel)
     end
     gfx.pop()
 end

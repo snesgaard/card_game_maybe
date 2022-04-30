@@ -172,7 +172,7 @@ end
 local card_font = gfx.newFont("art/fonts/smol.ttf", 20)
 local title_font = gfx.newFont("art/fonts/smol.ttf", 22)
 
-local function draw_card(x, y)
+local function draw_card(x, y, card_data)
     local frame = get_atlas("art/characters"):get_frame("card")
     local s = constants.scale
     gfx.push()
@@ -190,10 +190,11 @@ local function draw_card(x, y)
     local text_slice = frame.slices.text
     local black = gfx.hex2color("f2eee3")
     local key = gfx.hex2color("a9dc54")
-    local text = {
-        key, "Necromancy ", black, "5.\n",
-        black, "Deal 16 ", key, "damage.\n",
-    }
+    local text = List.map(card_data.text, function(block)
+        if type(block) == "function" then return block(card_data) end
+
+        return block
+    end)
     gfx.setFont(card_font)
 
     gfx.setColor(1, 1, 1)
@@ -203,7 +204,7 @@ local function draw_card(x, y)
     )
 
     local title_slice = frame.slices.title
-    local title = "Magic Swordsman"
+    local title = card_data.title or "NaN"
     draw_text(
         title, title_slice.x, title_slice.y, title_slice.w , title_slice.h,
         {font=title_font, align="center", valign="middle"}, 1 / s
