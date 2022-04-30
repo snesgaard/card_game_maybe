@@ -1,5 +1,4 @@
 local nw = require "nodeworks"
-local card_select = require "card_select"
 local mock_battle = require "mock_battle"
 
 function love.load()
