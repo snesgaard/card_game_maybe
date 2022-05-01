@@ -2,8 +2,8 @@ local nw = require "nodeworks"
 
 local function handle_key(selected, keymap, key)
     local km = keymap[key]
-    if not km then return selected end
-    return km[selected] or selected
+    if not km then return end
+    return km[selected]
 end
 
 local function key(selected, keymap, key)
