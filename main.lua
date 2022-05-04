@@ -1,3 +1,9 @@
+function class()
+    local c = {}
+    c.__index = c
+    return c
+end
+
 local nw = require "nodeworks"
 local mock_battle = require "mock_battle"
 

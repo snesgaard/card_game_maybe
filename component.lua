@@ -16,4 +16,6 @@ function component.graveyard(graveyard) return graveyard or {} end
 
 function component.draw(draw) return draw or {} end
 
+function component.card_being_played(card) return card or nil end
+
 return component

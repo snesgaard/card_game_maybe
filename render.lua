@@ -162,8 +162,11 @@ local function draw_text(text, x, y, w, h, opt, sx, sy)
     local opt = opt or {}
     if opt.font then gfx.setFont(opt.font) end
 
+    local sx = sx or 1
+    local sy = sy or sx
+
     local dy = compute_vertical_offset(
-        opt.valign, gfx.getFont():getHeight() * sx, h
+        opt.valign, gfx.getFont():getHeight() * sy, h
     )
 
     gfx.printf(text, x, y + dy, w / sx, opt.align or "left", 0, sx, sy)
@@ -218,6 +221,11 @@ local function card_size()
     return frame.slices.body:scale(s)
 end
 
+local theme = {
+    white = gfx.hex2color("f2eee3"),
+    green = gfx.hex2color("a9dc54"),
+    dark = gfx.hex2color("461d3f")
+}
 
 return {
     layer_type = layer_type,
@@ -227,5 +235,6 @@ return {
     draw_card = draw_card,
     fonts = fonts,
     draw_text = draw_text,
-    card_size = card_size
+    card_size = card_size,
+    theme = theme
 }

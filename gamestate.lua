@@ -130,6 +130,7 @@ local function fetch_reaction(react, step)
 end
 
 function history:advance(...)
+    print(...)
     local func, args, tag = format_args_for_advance(...)
 
     local next_gs, info = func(self:tail(), unpack(args))

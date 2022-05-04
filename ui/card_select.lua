@@ -52,29 +52,23 @@ local function handle_confirm(state, cards, keymap)
     if not is_hand then return end
 
     local next_cursor = keymap.left[state.cursor] or keymap.right[state.cursor]
+    local next_state = state:set("cursor", next_cursor)
 
-    if not is_select then
-        return {
-            cursor = next_cursor,
-            select = state.select:insert(state.cursor)
-        }
-    else
-        return {
-            cursor = next_cursor,
-            select = state.select:filter(function(card)
-                return card ~= state.cursor
-            end)
-        }
+    if is_select then
+        local next_select = state.select:filter(function(card)
+            return card ~= state.cursor
+        end)
+        return next_state:set("select", next_select)
+    elseif #state.select < state.count  then
+        local next_select = state.select:insert(state.cursor)
+        return next_state:set("select", next_select)
     end
 end
 
 local function handle_key_navigation(state, keymap, key)
     local next_cursor = ui.key(state.cursor or "default", keymap, key)
     if next_cursor then
-        return {
-            cursor = next_cursor,
-            select = state.select
-        }
+        return state:set("cursor", next_cursor)
     end
 end
 
@@ -116,7 +110,7 @@ local function compute_layout(tweens, state, cards)
     for i, card in ipairs(select) do
         local x = compute_x_cards(i, #select) + (rx or 0)
         local ox = cursor_offset(card, state.cursor)
-        local dst = tweens.position:move_to(card, vec2(x, 100) + ox, 0.1)
+        local dst = tweens.position:move_to(card, vec2(x, 150) + ox, 0.1)
         layout[card] = card_size:move(dst.x, dst.y)
         if card == state.cursor then rx = 50 end
     end
@@ -132,14 +126,39 @@ function card_select.create(player_id)
         tweens = {
             position = imtween():set_speed(1000)
         },
-        state = {
+        state = dict{
             cursor = nil,
             select = list(),
+            count = 1,
         },
         hand = {},
         id = player_id
     }
     return setmetatable(this, card_select)
+end
+
+function card_select:configure(opt)
+    self.state = self.state
+        :set("cursor", nil)
+        :set("select", list())
+        :set("count", opt.count or 1)
+        :set("slack", opt.slack)
+end
+
+function card_select:done()
+    return self.state.slack or self.state.count == #self.state.select
+end
+
+function card_select:pop()
+    local s = self.state.select:filter(function(c)
+        return self.hand:argfind(c)
+    end)
+
+    if #s == 1 then
+        self.state = self.state:set("cursor", s[1])
+    end
+
+    return s
 end
 
 function card_select:gamestate_step(gamestate)
