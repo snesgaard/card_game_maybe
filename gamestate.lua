@@ -15,6 +15,10 @@ function gamestate:get(component, id)
     return c[id]
 end
 
+function gamestate:component(component)
+    return self[component]
+end
+
 function gamestate:set(component, id, ...)
     local next_state = gamestate.create(self)
     local d = next_state[component] or dict()

@@ -16,7 +16,7 @@ return function(ctx)
         local card = ctx.game:pick_card_from_hand(1):unpack()
         ctx.game.ui.instruction:set_message("Confirm?")
         if ctx.game:press_to_confirm() then
-            ctx.game:step(mechanics.discard, ctx.game.id.player, card)
+            ctx.game:play_card(ctx.game.id.player, card)
         end
         --ctx:yield()
     end

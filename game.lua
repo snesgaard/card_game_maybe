@@ -7,6 +7,7 @@ local ui = require "ui"
 local card_select = require "ui.card_select"
 local instruction = require "ui.instruction_box"
 local cards = require "cards"
+local mechanics = require "mechanics"
 
 local function actor_position(index)
     local w, h = gfx.getWidth(), gfx.getHeight()
@@ -22,7 +23,7 @@ local function draw_actor(x, y)
 end
 
 local id = {
-    player = {},
+    player = "player",
     enemy = {},
     field = {}
 }
@@ -65,6 +66,7 @@ local function initial_gamestate()
             )
         )
         :set(component.graveyard, id.player, list())
+        :set(component.draw, id.player, list())
 end
 
 local function ui_layer(layer, self)
@@ -119,8 +121,8 @@ function game.create(ctx)
 end
 
 function game:step(func, ...)
+    print(self.gamestate:component(component.hand))
     local hist = gamestate.history(self.gamestate):advance(func, ...)
-
     self.gamestate = hist:tail()
 
     for _, ui in pairs(self.ui) do
@@ -174,6 +176,12 @@ function game:press_to_confirm()
         end
         self.ctx:yield()
     end
+end
+
+function game:play_card(user, card)
+    self:step(mechanics.card.begin_card_play, user, card)
+
+    self:step(mechanics.card.end_card_play, user)
 end
 
 return game.create

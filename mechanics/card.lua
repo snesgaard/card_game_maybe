@@ -19,19 +19,26 @@ function card_mechanics.begin_card_play(gs, user, card)
     local draw = gs:get(component.draw, user)
     local graveyard = gs:get(component.graveyard, user)
 
+    print(hand, draw, graveyard, user, gs:component(component.hand))
+
     local card_being_played = gs:get(component.card_being_played, user)
 
     local function is_not_card(c) return c ~= card end
 
     return gs
-        :set(component.hand, hand:filter(is_not_card))
-        :set(component.draw, draw:filter(is_not_card))
-        :set(component.graveyard, graveyard:filter(is_not_card))
-        :set(component.card_being_played, card)
+        :set(component.hand, user, hand:filter(is_not_card))
+        :set(component.draw, user, draw:filter(is_not_card))
+        :set(component.graveyard, user, graveyard:filter(is_not_card))
+        :set(component.card_being_played, user, card)
 end
 
 function card_mechanics.end_card_play(gs, user)
-    local graveyard = gs:get(com)
+    local graveyard = gs:get(component.graveyard, user)
+    local card = gs:get(component.card_being_played, user)
+
+    return gs
+        :set(component.graveyard, user, graveyard:insert(card))
+        :set(component.card_being_played, user, nil)
 end
 
 return card_mechanics
