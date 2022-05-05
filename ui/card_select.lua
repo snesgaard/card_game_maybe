@@ -143,6 +143,7 @@ function card_select:configure(opt)
         :set("select", list())
         :set("count", opt.count or 1)
         :set("slack", opt.slack)
+        :set("message", opt.message)
 end
 
 function card_select:done()
@@ -187,15 +188,59 @@ function card_select:keypressed(key)
     return false
 end
 
+function card_select:mousemoved(x, y)
+    local hand = self.hand
+
+    local layout = compute_layout(self.tweens, self.state, hand)
+
+    for i = #hand, 1, -1 do
+        local card = hand[i]
+        local pos = layout[card]
+        if pos:point_inside(x, y) then
+            self.state = self.state:set("cursor", card)
+            return true
+        end
+    end
+
+    return false
+end
+
+function card_select:mousepressed(x, y, button)
+    if button ~= 1 then return end
+
+    if self:mousemoved(x, y) then
+        local keymap = compute_keymap(self.state, self.hand)
+        self.state = handle_confirm(self.state, self.hand, keymap)
+    end
+end
+
 function card_select:update(dt)
     for _, tween in pairs(self.tweens) do tween:update(dt) end
 end
 
+local text_opt = {
+    font = gfx.newFont("art/fonts/smol.ttf", 50),
+    align = "center",
+    valign = "center"
+}
+
 function card_select:draw()
     gfx.setColor(1, 1, 1, 0.5)
     gfx.rectangle("fill", spatial(gfx.getWidth() / 2, 0, 0, gfx.getHeight()):expand(6, 0):unpack())
-    gfx.setColor(1, 1, 1)
 
+    if self.state.message then
+        local area = spatial(0, 150, gfx.getWidth(), render.card_size().h)
+            :expand(-400, 50)
+        local text = area:up(0, 0, 600, 100, "center")
+        gfx.rectangle("fill", area:unpack(20))
+        gfx.rectangle("fill", text:unpack(10))
+        gfx.setColor(render.theme.dark)
+        render.draw_text(
+            self.state.message, text.x, text.y, text.w, text.h, text_opt
+        )
+    end
+
+    gfx.setColor(1, 1, 1)
     local hand, select = split_cards(self.state, self.hand)
     local card_size = render.card_size()
     local layout = compute_layout(self.tweens, self.state, self.hand)
@@ -212,6 +257,8 @@ function card_select:draw()
         end
 
         render.draw_card(pos.x, pos.y, card)
+
+        gfx.rectangle("line", pos:unpack())
     end
 end
 

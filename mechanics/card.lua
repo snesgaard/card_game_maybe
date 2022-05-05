@@ -2,6 +2,18 @@ local component = require "component"
 
 local card_mechanics = {}
 
+function card_mechanics.draw(gs, user, num_cards)
+    local draw = gs:get(component.draw, user) or list()
+    local hand = gs:get(component.hand, user) or list()
+
+    local cards_to_add = draw:sub(1, num_cards)
+    local draw_left = draw:sub(num_cards + 1, #draw)
+
+    return gs
+        :set(component.hand, user, hand + cards_to_add)
+        :set(component.draw, user, draw_left)
+end
+
 function card_mechanics.discard(gs, user, card)
     local hand = gs:get(component.hand, user) or list()
     local discard = gs:get(component.graveyard, user) or list()
@@ -18,8 +30,6 @@ function card_mechanics.begin_card_play(gs, user, card)
     local hand = gs:get(component.hand, user)
     local draw = gs:get(component.draw, user)
     local graveyard = gs:get(component.graveyard, user)
-
-    print(hand, draw, graveyard, user, gs:component(component.hand))
 
     local card_being_played = gs:get(component.card_being_played, user)
 

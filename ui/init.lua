@@ -10,8 +10,9 @@ local function key(selected, keymap, key)
     return handle_key(selected, keymap, key)
 end
 
-local function move_to(dst, to, speed)
 
-end
 
-return {key=key}
+return {
+    key=key,
+    confirm = require "ui.confirm_prompt"
+}

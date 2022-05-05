@@ -61,17 +61,28 @@ local function initial_gamestate()
             component.hand,
             id.player,
             List.map(
-                {cards.shovel, cards.shovel, cards.shovel, cards.cure},
+                {cards.shovel, cards.shovel, cards.shovel, cards.graceful_charity},
                 function(card) return cards.instance(card) end
             )
         )
         :set(component.graveyard, id.player, list())
-        :set(component.draw, id.player, list())
+        :set(
+            component.draw,
+            id.player,
+            List.map(
+                {cards.cure, cards.cure, cards.cure, cards.cure, cards.cure},
+                function(card) return cards.instance(card) end
+            )
+        )
 end
 
 local function ui_layer(layer, self)
     self.ui.card_select:draw()
     self.ui.instruction:draw()
+
+    if self.ui.confirm then
+        self.ui.confirm:draw(gfx.getWidth() / 2, gfx.getHeight() / 2 + 50)
+    end
 end
 
 local function initial_visualstate()
@@ -108,7 +119,7 @@ function game.create(ctx)
             card_select = card_select(id.player),
             instruction = instruction()
                 :set_shape(spatial(0, 0, w, 50))
-                :set_bg_color{1, 1, 1, 0.5}
+                :set_bg_color{1, 1, 1, 0.5},
         },
         ctx = ctx
     }
@@ -120,14 +131,15 @@ function game.create(ctx)
     return setmetatable(this, game)
 end
 
-function game:step(func, ...)
-    print(self.gamestate:component(component.hand))
-    local hist = gamestate.history(self.gamestate):advance(func, ...)
+function game:step(...)
+    local hist = gamestate.history(self.gamestate):advance(...)
     self.gamestate = hist:tail()
 
     for _, ui in pairs(self.ui) do
         if ui.gamestate_step then ui:gamestate_step(self.gamestate) end
     end
+
+    return hist
 end
 
 function game:draw()
@@ -142,14 +154,28 @@ function game:update(dt)
     end
 end
 
-function game:pick_card_from_hand(count, slack)
-    self.ui.card_select:configure{count=count, slack=slack}
+function game:pick_card_from_hand(count, slack, message)
+    self.ui.card_select:configure{count=count, slack=slack, message=message}
 
     local keypressed = self.ctx:listen("keypressed"):collect()
+    local mousemoved = self.ctx:listen("mousemoved"):collect()
+    local mousepressed = self.ctx:listen("mousepressed"):collect()
 
     while self.ctx.alive and not self.ui.card_select:done() do
         for _, event in ipairs(keypressed:pop()) do
             if self.ui.card_select:keypressed(unpack(event)) then
+                event.consumed = true
+            end
+        end
+
+        for _, event in ipairs(mousemoved:pop()) do
+            if self.ui.card_select:mousemoved(unpack(event)) then
+                event.consumed = true
+            end
+        end
+
+        for _, event in ipairs(mousepressed:pop()) do
+            if self.ui.card_select:mousepressed(unpack(event)) then
                 event.consumed = true
             end
         end
@@ -160,26 +186,30 @@ function game:pick_card_from_hand(count, slack)
     return self.ui.card_select:pop()
 end
 
-function game:press_to_confirm()
+function game:press_to_confirm(message)
     local keypressed = self.ctx:listen("keypressed"):collect()
 
-    while self.ctx.alive do
+    self.ctx.game.ui.confirm = ui.confirm():set_message(message)
+
+    while self.ctx.alive and not self.ctx.game.ui.confirm:is_done() do
         for _, event in ipairs(keypressed:pop()) do
-            local key = unpack(event)
-            if key == "space" then
+            if self.ctx.game.ui.confirm:keypressed(unpack(event)) then
                 event.consumed = true
-                return true
-            elseif key == "backspace" then
-                event.consumed = true
-                return false
             end
         end
         self.ctx:yield()
     end
+
+    local c = self.ctx.game.ui.confirm
+    self.ctx.game.ui.confirm = nil
+
+    return c:pop()
 end
 
 function game:play_card(user, card)
     self:step(mechanics.card.begin_card_play, user, card)
+
+    if card.effect then card.effect(self, user) end
 
     self:step(mechanics.card.end_card_play, user)
 end

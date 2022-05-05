@@ -1,4 +1,4 @@
-local mechanics = require "mechanics.combat"
+local mechanics = require "mechanics"
 
 local card = {}
 
@@ -42,23 +42,33 @@ card.graceful_charity = {
     title = "Graceful Charity",
     discard = 2,
     draw = 3,
-    effect = function(history, game, user)
-        game:select_target({user})
-        game:advance(mechanics.draw_card, user, card.graceful_charity.draw)
+    effect = function(game, user)
+        game:step(mechanics.card.draw, user, 3)
 
-        local discards = game:select_cards_from_hand(
-            user, card.graceful_charity.discard
-        )
-        game:advance(mechanics.discard_cards, user, discard)
+        local function pick_discards()
+            while true do
+                local discards = game:pick_card_from_hand(
+                    2, false, "Discard 2 cards"
+                )
+                if game:press_to_confirm("Discard these cards?") then
+                    return discards
+                end
+            end
+        end
+
+
+        for _, card in ipairs(pick_discards()) do
+            game:step(mechanics.card.discard, user, card)
+        end
     end,
     text = {
-        theme.key, "Draw ",
-        theme.normal, function(card)
+        theme.key, "Draw",
+        theme.normal, function()
             return string.format(" %i cards.\n", card.graceful_charity.draw)
         end,
         theme.key, "Discard",
-        theme.normal, function(card)
-            return string.format(" %i cards.", cards.graceful_charity.discard)
+        theme.normal, function()
+            return string.format(" %i cards.", card.graceful_charity.discard)
         end
     }
 }

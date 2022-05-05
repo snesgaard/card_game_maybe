@@ -12,12 +12,11 @@ return function(ctx)
         :foreach(function(dt) ctx.game:update(dt) end)
 
     while ctx.alive do
-        ctx.game.ui.instruction:set_message("Pick a card")
-        local card = ctx.game:pick_card_from_hand(1):unpack()
-        ctx.game.ui.instruction:set_message("Confirm?")
-        if ctx.game:press_to_confirm() then
-            ctx.game:play_card(ctx.game.id.player, card)
-        end
+        --ctx.game.ui.instruction:set_message("Pick a card")
+        local card = ctx.game:pick_card_from_hand(1, false):unpack()
+        --if ctx.game:press_to_confirm("Play card?") then
+        ctx.game:play_card(ctx.game.id.player, card)
+    --    end
         --ctx:yield()
     end
 end

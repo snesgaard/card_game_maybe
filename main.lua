@@ -20,6 +20,14 @@ function love.keypressed(key)
     world:emit("keypressed", key)
 end
 
+function love.mousemoved(x, y, dx, dy)
+    world:emit("mousemoved", x, y, dx, dy)
+end
+
+function love.mousepressed(x, y, button, isTouch)
+    world:emit("mousepressed", x, y, button)
+end
+
 function love.update(dt)
     world:emit("update", dt):spin()
     collectgarbage()
