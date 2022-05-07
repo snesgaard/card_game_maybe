@@ -90,8 +90,8 @@ local function reveal_offset(card, cursor)
     if card == cursor then return 50 end
 end
 
-local function compute_layout(tweens, state, cards)
-    local hand, select = split_cards(state, cards)
+local function compute_layout(tweens, state, gamestate)
+    local hand, select = split_cards(state, gamestate.hand)
     local card_size = render.card_size()
 
     local layout = {}
@@ -115,6 +115,12 @@ local function compute_layout(tweens, state, cards)
         if card == state.cursor then rx = 50 end
     end
 
+    if gamestate.card_being_played then
+        local card = gamestate.card_being_played
+        local dst = tweens.position:move_to(card, vec2(50, 50), 0.1)
+        layout[card] = card_size:move(dst.x, dst.y)
+    end
+
     return layout
 end
 
@@ -131,7 +137,10 @@ function card_select.create(player_id)
             select = list(),
             count = 1,
         },
-        hand = {},
+        gamestate = {
+            hand = {},
+            card_being_played = nil
+        },
         id = player_id
     }
     return setmetatable(this, card_select)
@@ -152,7 +161,7 @@ end
 
 function card_select:pop()
     local s = self.state.select:filter(function(c)
-        return self.hand:argfind(c)
+        return self.gamestate.hand:argfind(c)
     end)
 
     if #s == 1 then
@@ -163,11 +172,12 @@ function card_select:pop()
 end
 
 function card_select:gamestate_step(gamestate)
-    self.hand = gamestate:get(component.hand, self.id)
+    self.gamestate.hand = gamestate:get(component.hand, self.id)
+    self.gamestate.card_being_played = gamestate:get(component.card_being_played, self.id)
 end
 
 function card_select:keypressed(key)
-    local keymap = compute_keymap(self.state, self.hand)
+    local keymap = compute_keymap(self.state, self.gamestate.hand)
 
     local next_state = handle_key_navigation(self.state, keymap, key)
 
@@ -177,7 +187,7 @@ function card_select:keypressed(key)
     end
 
     if key == "space" then
-        self.state = handle_confirm(self.state, self.hand, keymap) or self.state
+        self.state = handle_confirm(self.state, self.gamestate.hand, keymap) or self.state
         return true
     end
 
@@ -189,9 +199,9 @@ function card_select:keypressed(key)
 end
 
 function card_select:mousemoved(x, y)
-    local hand = self.hand
+    local hand = self.gamestate.hand
 
-    local layout = compute_layout(self.tweens, self.state, hand)
+    local layout = compute_layout(self.tweens, self.state, self.gamestate)
 
     for i = #hand, 1, -1 do
         local card = hand[i]
@@ -209,8 +219,8 @@ function card_select:mousepressed(x, y, button)
     if button ~= 1 then return end
 
     if self:mousemoved(x, y) then
-        local keymap = compute_keymap(self.state, self.hand)
-        self.state = handle_confirm(self.state, self.hand, keymap)
+        local keymap = compute_keymap(self.state, self.gamestate.hand)
+        self.state = handle_confirm(self.state, self.gamestate.hand, keymap)
     end
 end
 
@@ -225,10 +235,23 @@ local text_opt = {
 }
 
 function card_select:draw()
+    local layout = compute_layout(self.tweens, self.state, self.gamestate)
+
     gfx.setColor(1, 1, 1, 0.5)
-    gfx.rectangle("fill", spatial(gfx.getWidth() / 2, 0, 0, gfx.getHeight()):expand(6, 0):unpack())
+    gfx.rectangle(
+        "fill",
+        spatial(gfx.getWidth() / 2, 0, 0, gfx.getHeight()):expand(6, 0):unpack()
+    )
+
+    if self.gamestate.card_being_played then
+        local card = self.gamestate.card_being_played
+        local pos = layout[card]
+        gfx.setColor(1, 1, 1)
+        render.draw_card(pos.x, pos.y, card)
+    end
 
     if self.state.message then
+        gfx.setColor(1, 1, 1, 0.5)
         local area = spatial(0, 150, gfx.getWidth(), render.card_size().h)
             :expand(-400, 50)
         local text = area:up(0, 0, 600, 100, "center")
@@ -241,9 +264,8 @@ function card_select:draw()
     end
 
     gfx.setColor(1, 1, 1)
-    local hand, select = split_cards(self.state, self.hand)
+    local hand, select = split_cards(self.state, self.gamestate.hand)
     local card_size = render.card_size()
-    local layout = compute_layout(self.tweens, self.state, self.hand)
 
     local cards_to_draw = hand + select
 

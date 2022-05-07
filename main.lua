@@ -30,7 +30,7 @@ end
 
 function love.update(dt)
     world:emit("update", dt):spin()
-    collectgarbage()
+    --collectgarbage()
 end
 
 function love.draw()
