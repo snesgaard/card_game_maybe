@@ -42,6 +42,7 @@ function target_select:configure(gamestate, filter)
         :set("keymap", compute_keymap(targets))
         :set("positions", positions)
         :set("cursor", targets:head())
+        :set("time", 0)
 end
 
 function target_select:clear()
@@ -54,7 +55,9 @@ function target_select:keypressed(key)
     local next_cursor = ui.key(self.state.cursor, self.state.keymap, key)
 
     if next_cursor then
-        self.state = self.state:set("cursor", next_cursor)
+        self.state = self.state
+            :set("cursor", next_cursor)
+            :set("time", 0)
         return true
     end
 
@@ -80,6 +83,26 @@ function target_select:pop()
     return s.cursor
 end
 
+function target_select:update(dt)
+    if not self.state then return end
+    self.state.time = self.state.time + dt
+end
+
+local function compute_size(time)
+    local min, max = 3, 8
+    local expand = 12
+    local expand_time = 0.25
+
+    if time < expand_time then
+        local t = -math.cos(time * math.pi * 2 / expand_time) / 2 + 1
+        return t * expand + (1 - t) * min
+    end
+
+    local dr = max - min
+    local t = (-math.cos(time - expand_time) / 2 + 1)
+    return t * max + (1 - t) * min
+end
+
 function target_select:draw()
     if not self.state then return end
     if not self.state.cursor then return end
@@ -90,7 +113,7 @@ function target_select:draw()
     if not p then return end
 
     gfx.setColor(0, 0, 0)
-    gfx.circle("fill", p.x, p.y- 100, 6)
+    gfx.circle("fill", p.x, p.y- 100, compute_size(self.state.time))
 end
 
 
