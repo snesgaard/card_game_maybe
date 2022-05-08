@@ -1,19 +1,21 @@
+local component = require "component"
+
 local combat = {}
 
 function combat.damage(gs, user, target, dmg)
-    local str = gs:get(component.strength, user)
-    local def = gs:get(component.defense, target)
-    local charge = gs:get(component.charge, user)
-    local shield = gs:get(component.shield, target)
-    local health = gs:get(component.health, target)
+    local str = gs:get(component.strength, user) or 0
+    local def = gs:get(component.defense, target) or 0
+    local charge = gs:get(component.charge, user) or 0
+    local shield = gs:get(component.shield, target) or 0
+    local health = gs:get(component.health, target) or 0
 
     local adj_dmg = dmg + str
 
-    if charge then adj_dmg = adj_dmg * 2 end
+    if charge > 0 then adj_dmg = adj_dmg * 2 end
 
     adj_dmg = adj_dmg - def
 
-    if shield then adj_dmg = 0 end
+    if shield > 0 then adj_dmg = 0 end
 
     adj_dmg = math.max(adj_dmg, 0)
 

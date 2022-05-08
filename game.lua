@@ -8,6 +8,8 @@ local card_select = require "ui.card_select"
 local instruction = require "ui.instruction_box"
 local cards = require "cards"
 local mechanics = require "mechanics"
+local constants = require "game.constants"
+local field_render = require "game.field_render"
 
 local function actor_position(index)
     local w, h = gfx.getWidth(), gfx.getHeight()
@@ -25,7 +27,7 @@ end
 local id = {
     player = "player",
     enemy = {},
-    field = {}
+    field = constants.field
 }
 
 local actions = {
@@ -51,7 +53,7 @@ local layer_order = {
 
 local function initial_gamestate()
     return gamestate.state()
-        :set(component.health, id.player, 10)
+        :set(component.health, id.player, 5)
         :set(component.health, id.enemy, 20)
         :set(component.max_health, id.player, 10)
         :set(component.max_health, id.enemy, 20)
@@ -85,6 +87,12 @@ local function ui_layer(layer, self)
     end
 end
 
+local function field_layer(layer, game)
+    field_render.draw(game)
+    game.ui.target_select:draw()
+    game.ui.character_status:draw()
+end
+
 local function initial_visualstate()
     local vs = nw.ecs.entity()
 
@@ -95,12 +103,24 @@ local function initial_visualstate()
     vs:entity(layer_id.ui)
         :set(nw.component.layer_type, ui_layer)
 
+    vs:entity(layer_id.field)
+        :set(nw.component.layer_type, field_layer)
+
     return vs
 end
 
 local function draw_visual_state(ctx)
     for _, id in ipairs(layer_order) do
         render.draw_layer(ctx.visualstate:entity(id), ctx)
+    end
+end
+
+local function handle_event_to_ui(ui, api_name, event_list)
+    local f = ui[api_name]
+    if not f then return end
+
+    for _, event in ipairs(event_list) do
+        if f(ui, unpack(event)) then event.consumed = true end
     end
 end
 
@@ -120,6 +140,11 @@ function game.create(ctx)
             instruction = instruction()
                 :set_shape(spatial(0, 0, w, 50))
                 :set_bg_color{1, 1, 1, 0.5},
+            character_status = require("ui.character_status")(),
+            target_select = require("ui.target_select")()
+        },
+        tweens = {
+            position = imtween()
         },
         ctx = ctx
     }
@@ -133,10 +158,15 @@ end
 
 function game:step(...)
     local hist = gamestate.history(self.gamestate):advance(...)
-    self.gamestate = hist:tail()
 
-    for _, ui in pairs(self.ui) do
-        if ui.gamestate_step then ui:gamestate_step(self.gamestate) end
+    for _, step in ipairs(hist.steps) do
+        self.gamestate = step.gamestate
+
+        for _, ui in pairs(self.ui) do
+            if ui.gamestate_step then
+                ui:gamestate_step(self.gamestate, step)
+            end
+        end
     end
 
     return hist
@@ -151,6 +181,10 @@ end
 function game:update(dt)
     for _, ui in pairs(self.ui) do
         if ui.update then ui:update(dt) end
+    end
+
+    for _, tween in pairs(self.tweens) do
+        tween:update(dt)
     end
 end
 
@@ -186,6 +220,25 @@ function game:pick_card_from_hand(count, slack, message)
     return self.ui.card_select:pop()
 end
 
+function game:select_target(filter)
+    self.ui.target_select:configure(self.gamestate, filter)
+
+    local keypressed = self.ctx:listen("keypressed"):collect()
+
+    while self.ctx.alive and not self.ui.target_select:is_done() do
+            handle_event_to_ui(
+                self.ui.target_select, "keypressed", keypressed:pop()
+            )
+            self.ctx:yield()
+    end
+
+    return self.ui.target_select:pop()
+end
+
+function game:select_self(id)
+    return self:select_target(function(gamestate, target) return target == id end)
+end
+
 function game:press_to_confirm(message)
     local keypressed = self.ctx:listen("keypressed"):collect()
 
@@ -209,9 +262,12 @@ end
 function game:play_card(user, card)
     self:step(mechanics.card.begin_card_play, user, card)
 
-    if card.effect then card.effect(self, user) end
+    if card.effect and card.effect(self, user) ~= nil then
+        self:step(mechanics.card.end_card_play, user, true)
+    else
+        self:step(mechanics.card.end_card_play, user)
+    end
 
-    self:step(mechanics.card.end_card_play, user)
 end
 
 return game.create

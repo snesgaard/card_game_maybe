@@ -9,9 +9,12 @@ function card_mechanics.draw(gs, user, num_cards)
     local cards_to_add = draw:sub(1, num_cards)
     local draw_left = draw:sub(num_cards + 1, #draw)
 
-    return gs
+    local info = {cards = cards_to_add}
+    local next_gs = gs
         :set(component.hand, user, hand + cards_to_add)
         :set(component.draw, user, draw_left)
+
+    return next_gs, info
 end
 
 function card_mechanics.discard(gs, user, card)
@@ -42,13 +45,20 @@ function card_mechanics.begin_card_play(gs, user, card)
         :set(component.card_being_played, user, card)
 end
 
-function card_mechanics.end_card_play(gs, user)
+function card_mechanics.end_card_play(gs, user, was_skipped)
     local graveyard = gs:get(component.graveyard, user)
+    local hand = gs:get(component.hand, user)
     local card = gs:get(component.card_being_played, user)
 
-    return gs
-        :set(component.graveyard, user, graveyard:insert(card))
-        :set(component.card_being_played, user, nil)
+    if was_skipped then
+        return gs
+            :set(component.hand, user, hand:insert(card))
+            :set(component.card_being_played, user, nil)
+    else
+        return gs
+            :set(component.graveyard, user, graveyard:insert(card))
+            :set(component.card_being_played, user, nil)
+    end
 end
 
 return card_mechanics

@@ -2,6 +2,7 @@ local imtween = require "tween.im_tween"
 local ui = require "ui"
 local render = require "render"
 local component = require "component"
+local mechanics = require "mechanics"
 
 local function split_cards(state, cards)
     local hand = cards:filter(function(c)
@@ -117,7 +118,7 @@ local function compute_layout(tweens, state, gamestate)
 
     if gamestate.card_being_played then
         local card = gamestate.card_being_played
-        local dst = tweens.position:move_to(card, vec2(50, 50), 0.1)
+        local dst = tweens.position:move_to(card, vec2(50, 50), 0.2)
         layout[card] = card_size:move(dst.x, dst.y)
     end
 
@@ -171,9 +172,17 @@ function card_select:pop()
     return s
 end
 
-function card_select:gamestate_step(gamestate)
+function card_select:gamestate_step(gamestate, step)
     self.gamestate.hand = gamestate:get(component.hand, self.id)
     self.gamestate.card_being_played = gamestate:get(component.card_being_played, self.id)
+
+    if not step then return step end
+
+    if step.func == mechanics.card.draw then
+        for _, card in ipairs(step.info.cards) do
+            self.tweens.position:warp_to(card, vec2(-300, 1000))
+        end
+    end
 end
 
 function card_select:keypressed(key)

@@ -175,6 +175,10 @@ end
 local card_font = gfx.newFont("art/fonts/smol.ttf", 20)
 local title_font = gfx.newFont("art/fonts/smol.ttf", 22)
 
+local function create_font(...)
+    return gfx.newFont("art/fonts/smol.ttf", ...)
+end
+
 local function draw_card(x, y, card_data)
     local frame = get_atlas("art/characters"):get_frame("card")
     local s = constants.scale
@@ -224,7 +228,10 @@ end
 local theme = {
     white = gfx.hex2color("f2eee3"),
     green = gfx.hex2color("a9dc54"),
-    dark = gfx.hex2color("461d3f")
+    dark = gfx.hex2color("461d3f"),
+    red =  gfx.hex2color("a03683"),
+    dark_red = gfx.hex2color("641f4c"),
+    light_red = gfx.hex2color("c36e89")
 }
 
 return {
@@ -236,5 +243,6 @@ return {
     fonts = fonts,
     draw_text = draw_text,
     card_size = card_size,
-    theme = theme
+    theme = theme,
+    create_font = create_font
 }

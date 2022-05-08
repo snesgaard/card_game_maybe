@@ -18,4 +18,12 @@ function component.draw(draw) return draw or {} end
 
 function component.card_being_played(card) return card or nil end
 
+function component.strength(str) return str or 0 end
+
+function component.defense(def) return def or 0 end
+
+function component.charge(c) return c or 0 end
+
+function component.shield(s) return s or 0 end
+
 return component

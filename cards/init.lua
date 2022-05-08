@@ -15,9 +15,10 @@ local theme = {
 card.shovel = {
     title = "Shovel",
     damage = 5,
-    map = function(history, user, target)
-        return history
-            :advance(mechanics.combat.damage, user, target, card.shovel.damage)
+    effect = function(game, user)
+        local target = game:select_target()
+        if not target then return false end
+        game:step(mechanics.combat.damage, user, target, card.shovel.damage)
     end,
     text = {
         theme.normal,  function() return string.format("Deal %i", card.shovel.damage) end,
@@ -30,6 +31,8 @@ card.cure = {
     heal = 5,
     effect = function(history, user, target)
         local target = game:select_target()
+
+
         game:advance(mechanics.combat.heal, user, target, card.cure.heal)
     end,
     text = {
@@ -43,7 +46,10 @@ card.graceful_charity = {
     discard = 2,
     draw = 3,
     effect = function(game, user)
-        game:step(mechanics.card.draw, user, 3)
+        local target = game:select_self(user)
+        if not target then return false end
+
+        game:step(mechanics.card.draw, target, 3)
 
         local function pick_discards()
             while true do
@@ -58,7 +64,7 @@ card.graceful_charity = {
 
 
         for _, card in ipairs(pick_discards()) do
-            game:step(mechanics.card.discard, user, card)
+            game:step(mechanics.card.discard, target, card)
         end
     end,
     text = {
