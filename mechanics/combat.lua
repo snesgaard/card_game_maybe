@@ -1,4 +1,5 @@
 local component = require "component"
+local constants = require "game.constants"
 
 local combat = {}
 
@@ -47,6 +48,32 @@ function combat.heal(gs, target, heal)
     }
 
     local next_gs = gs:set(component.health, target, next_health)
+
+    return next_gs, info
+end
+
+function combat.spawn_minion(gs, minion, id, master, spawn_point)
+    print(minion, id, master, spawn_point)
+    local formation = gs:ensure(component.formation, constants.field)
+    local prev_id = formation[spawn_point]
+
+    print(spawn_point, id, constants.field)
+    if prev_id then return end
+
+    local next_gs = gs
+        :set(component.health, id, minion.health or 0)
+        :set(component.max_health, id, minion.health or 0)
+        :set(component.attack, id, minion.attack or 0)
+        :set(component.type, id, minion)
+        :set(component.master, id, master)
+        :set(component.formation, constants.field, formation:set(spawn_point, id))
+
+
+    local info = {
+        type = minion,
+        master = master,
+        id = id
+    }
 
     return next_gs, info
 end

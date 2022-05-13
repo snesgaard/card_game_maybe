@@ -47,18 +47,23 @@ end
 
 function field_render.draw_actor(game, id, x, y, s)
     local s = s or 1
+    local type = game.gamestate:get(component.type, id)
     gfx.setColor(1, 1, 1)
     gfx.push()
 
     gfx.translate(x, y)
-    --gfx.rectangle("fill", -25, 0, 50, -200)
-    image = get_atlas("art/characters"):get_frame("chibdigger")
-    image:draw("body", 0, 0, 0, s * 3, 3)
+    if not type then
+        gfx.rectangle("fill", -25, 0, 50, -200)
+    else
+        image = get_atlas("art/characters"):get_frame(type.animation.idle)
+        image:draw("body", 0, 0, 0, s * 3, 3)
+    end
 
     gfx.pop()
 end
 
 function field_render.draw(game)
+    --[[
     local gs = game.gamestate
     local vs = game.visualstate
 
@@ -74,11 +79,18 @@ function field_render.draw(game)
         local pos = field_render.enemy_position(index)
         field_render.draw_actor(game, id, pos.x, pos.y, -1)
     end
+    ]]--
+    local f = game.gamestate:ensure(component.formation, constants.field)
+
+    for index, id in pairs(f) do
+        local pos = field_render.actor_position(index)
+        local s = index < 0 and 1 or -1
+        field_render.draw_actor(game, id, pos.x, pos.y, s)
+    end
 end
 
 function field_render.draw_ui_actor(game, index, id)
     local pos = field_render.actor_position(index)
-
 end
 
 function field_render.draw_ui(game)

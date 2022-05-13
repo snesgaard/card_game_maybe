@@ -1,6 +1,7 @@
 local nw = require "nodeworks"
 local game = require "game"
 local mechanics = require "mechanics"
+local minion = require "minion"
 
 return function(ctx)
     ctx.game = game(ctx)
@@ -11,7 +12,13 @@ return function(ctx)
     local update = ctx:listen("update")
         :foreach(function(dt) ctx.game:update(dt) end)
 
-    ctx.game:step(mechanics.card.draw, ctx.game.id.player, 4)
+    --ctx.game:step(mechanics.card.draw, ctx.game.id.player, 4)
+    ctx.game:step(
+        mechanics.combat.spawn_minion, minion.fireskull, "fireskull", "player", 1
+    )
+    ctx.game:step(
+        mechanics.combat.spawn_minion, minion.fireskull, "fireskull2", "player", -1
+    )
 
     while ctx.alive do
         ctx.game:pick_card(3, true)

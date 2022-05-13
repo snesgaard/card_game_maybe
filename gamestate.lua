@@ -41,6 +41,10 @@ function gamestate:clear(id)
     return next_state
 end
 
+function gamestate:ensure(component, id)
+    return self:get(component, id) or component()
+end
+
 function gamestate:intersection(...)
     local components = {...}
     local entity_list = list()

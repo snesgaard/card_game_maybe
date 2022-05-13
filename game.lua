@@ -38,6 +38,8 @@ local layer_order = {
 
 local function initial_gamestate()
     return gamestate.state()
+    --[[
+    return gamestate.state()
         :set(component.health, id.player, 5)
         :set(component.health, id.enemy, 20)
         :set(component.max_health, id.player, 10)
@@ -61,6 +63,7 @@ local function initial_gamestate()
                 cards.instance
             )
         )
+        ]]--
 end
 
 local function ui_layer(layer, self)
@@ -165,6 +168,19 @@ function game:pick_card(count, strict)
     end
 
     return ui:action("pop"):unpack()
+end
+
+function game:spawn_minion(minion, user)
+    local id = {}
+    local spawn_point = self:select_spawn()
+
+    if not spawn_point then return end
+
+    if minion.entry then
+        --if minion.entry(self, user, spawn_point) == false then return end
+    end
+
+    game:step(mechanics.minion.spawn, minion, id, user, spawn_point)
 end
 
 return game.create

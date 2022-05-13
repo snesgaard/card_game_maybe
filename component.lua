@@ -26,4 +26,12 @@ function component.charge(c) return c or 0 end
 
 function component.shield(s) return s or 0 end
 
+function component.formation(f) return f or dict() end
+
+function component.type(t) return t end
+
+function component.master(m) return m end
+
+function component.attack(a) return a or 0 end
+
 return component
