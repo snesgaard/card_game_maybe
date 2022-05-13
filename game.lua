@@ -4,25 +4,10 @@ local component = require "component"
 local imtween = require "tween.im_tween"
 local render = require "render"
 local ui = require "ui"
-local card_select = require "ui.card_select"
-local instruction = require "ui.instruction_box"
 local cards = require "cards"
 local mechanics = require "mechanics"
 local constants = require "game.constants"
 local field_render = require "game.field_render"
-
-local function actor_position(index)
-    local w, h = gfx.getWidth(), gfx.getHeight()
-    local mid = spatial(w / 2, h, 0, 0):move(0, -400)
-    if index == 0 then return mid end
-    local s = index < 0 and -1 or 1
-    return mid:move(s * (200 + 60 * (math.abs(index) - 1)), 0)
-end
-
-local function draw_actor(x, y)
-    local w, h = 50, 200
-    gfx.rectangle("fill", x - w / 2, y - h, w, h)
-end
 
 local id = {
     player = "player",
@@ -62,35 +47,28 @@ local function initial_gamestate()
         :set(
             component.hand,
             id.player,
-            List.map(
-                {cards.shovel, cards.shovel, cards.shovel, cards.graceful_charity},
-                function(card) return cards.instance(card) end
-            )
+            list()
         )
         :set(component.graveyard, id.player, list())
         :set(
             component.draw,
             id.player,
             List.map(
-                {cards.cure, cards.cure, cards.cure, cards.cure, cards.cure},
-                function(card) return cards.instance(card) end
+                {
+                    cards.fireskull, cards.fireskull, cards.fireskull, cards.fireskull, cards.fireskull,
+                    cards.shovel, cards.shovel, cards.shovel, cards.shovel, cards.shovel
+                },
+                cards.instance
             )
         )
 end
 
 local function ui_layer(layer, self)
     self.ui.card_select:draw()
-    self.ui.instruction:draw()
-
-    if self.ui.confirm then
-        self.ui.confirm:draw(gfx.getWidth() / 2, gfx.getHeight() / 2 + 50)
-    end
 end
 
 local function field_layer(layer, game)
     field_render.draw(game)
-    game.ui.target_select:draw()
-    game.ui.character_status:draw()
 end
 
 local function initial_visualstate()
@@ -116,11 +94,10 @@ local function draw_visual_state(ctx)
 end
 
 local function handle_event_to_ui(ui, api_name, event_list)
-    local f = ui[api_name]
-    if not f then return end
-
     for _, event in ipairs(event_list) do
-        if f(ui, unpack(event)) then event.consumed = true end
+        if ui:action(api_name, unpack(event)) then
+            event.consumed = true
+        end
     end
 end
 
@@ -136,15 +113,7 @@ function game.create(ctx)
         gamestate = initial_gamestate(),
         visualstate = initial_visualstate(),
         ui = {
-            card_select = card_select(id.player),
-            instruction = instruction()
-                :set_shape(spatial(0, 0, w, 50))
-                :set_bg_color{1, 1, 1, 0.5},
-            character_status = require("ui.character_status")(),
-            target_select = require("ui.target_select")()
-        },
-        tweens = {
-            position = imtween()
+            card_select = gui(ui.card_ui, id.player),
         },
         ctx = ctx
     }
@@ -163,9 +132,7 @@ function game:step(...)
         self.gamestate = step.gamestate
 
         for _, ui in pairs(self.ui) do
-            if ui.gamestate_step then
-                ui:gamestate_step(self.gamestate, step)
-            end
+            ui:action(step.func, step.gamestate, step)
         end
     end
 
@@ -180,94 +147,24 @@ end
 
 function game:update(dt)
     for _, ui in pairs(self.ui) do
-        if ui.update then ui:update(dt) end
-    end
-
-    for _, tween in pairs(self.tweens) do
-        tween:update(dt)
+        if ui.update then
+            ui:update(dt)
+        end
     end
 end
 
-function game:pick_card_from_hand(count, slack, message)
-    self.ui.card_select:configure{count=count, slack=slack, message=message}
-
+function game:pick_card(count, strict)
     local keypressed = self.ctx:listen("keypressed"):collect()
-    local mousemoved = self.ctx:listen("mousemoved"):collect()
-    local mousepressed = self.ctx:listen("mousepressed"):collect()
+    local ui = self.ui.card_select
 
-    while self.ctx.alive and not self.ui.card_select:done() do
-        for _, event in ipairs(keypressed:pop()) do
-            if self.ui.card_select:keypressed(unpack(event)) then
-                event.consumed = true
-            end
-        end
-
-        for _, event in ipairs(mousemoved:pop()) do
-            if self.ui.card_select:mousemoved(unpack(event)) then
-                event.consumed = true
-            end
-        end
-
-        for _, event in ipairs(mousepressed:pop()) do
-            if self.ui.card_select:mousepressed(unpack(event)) then
-                event.consumed = true
-            end
-        end
-
+    while self.ctx.alive and ui:action("peek"):size() ~= count do
+        handle_event_to_ui(
+            ui, "keypressed", keypressed:pop()
+        )
         self.ctx:yield()
     end
 
-    return self.ui.card_select:pop()
-end
-
-function game:select_target(filter)
-    self.ui.target_select:configure(self.gamestate, filter)
-
-    local keypressed = self.ctx:listen("keypressed"):collect()
-
-    while self.ctx.alive and not self.ui.target_select:is_done() do
-            handle_event_to_ui(
-                self.ui.target_select, "keypressed", keypressed:pop()
-            )
-            self.ctx:yield()
-    end
-
-    return self.ui.target_select:pop()
-end
-
-function game:select_self(id)
-    return self:select_target(function(gamestate, target) return target == id end)
-end
-
-function game:press_to_confirm(message)
-    local keypressed = self.ctx:listen("keypressed"):collect()
-
-    self.ctx.game.ui.confirm = ui.confirm():set_message(message)
-
-    while self.ctx.alive and not self.ctx.game.ui.confirm:is_done() do
-        for _, event in ipairs(keypressed:pop()) do
-            if self.ctx.game.ui.confirm:keypressed(unpack(event)) then
-                event.consumed = true
-            end
-        end
-        self.ctx:yield()
-    end
-
-    local c = self.ctx.game.ui.confirm
-    self.ctx.game.ui.confirm = nil
-
-    return c:pop()
-end
-
-function game:play_card(user, card)
-    self:step(mechanics.card.begin_card_play, user, card)
-
-    if card.effect and card.effect(self, user) ~= nil then
-        self:step(mechanics.card.end_card_play, user, true)
-    else
-        self:step(mechanics.card.end_card_play, user)
-    end
-
+    return ui:action("pop"):unpack()
 end
 
 return game.create

@@ -131,12 +131,13 @@ card_select.__index = card_select
 function card_select.create(player_id)
     local this = {
         tweens = {
-            position = imtween():set_speed(1000)
+            position = imtween():set_speed(1000),
         },
         state = dict{
             cursor = nil,
             select = list(),
             count = 1,
+            outgoing = list()
         },
         gamestate = {
             hand = {},
@@ -182,6 +183,11 @@ function card_select:gamestate_step(gamestate, step)
         for _, card in ipairs(step.info.cards) do
             self.tweens.position:warp_to(card, vec2(-300, 1000))
         end
+    elseif step.func == mechanics.card.discard then
+        local outgoing = self.state.outgoing:insert(step.info.card)
+
+        self.state = self.state
+            :set("outgoing", self.state.outgoing:insert())
     end
 end
 

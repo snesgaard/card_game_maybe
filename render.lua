@@ -174,13 +174,15 @@ end
 
 local card_font = gfx.newFont("art/fonts/smol.ttf", 20)
 local title_font = gfx.newFont("art/fonts/smol.ttf", 22)
+local stat_font = gfx.newFont("art/fonts/smol.ttf", 22)
 
 local function create_font(...)
     return gfx.newFont("art/fonts/smol.ttf", ...)
 end
 
 local function draw_card(x, y, card_data)
-    local frame = get_atlas("art/characters"):get_frame("card")
+    local frame = get_atlas("art/characters"):get_frame("card/minion")
+    local image = get_atlas("art/characters"):get_frame("fireskull")
     local s = constants.scale
     gfx.push()
     gfx.translate(x, y)
@@ -190,8 +192,8 @@ local function draw_card(x, y, card_data)
     local bg_color = gfx.hex2color("9567c1")
     gfx.setColor(bg_color)
     gfx.rectangle("fill", frame.slices.image:unpack())
-
     gfx.setColor(1, 1, 1)
+    image:draw(frame.slices.image.x, frame.slices.image.y)
     frame:draw(0, 0)
 
     local text_slice = frame.slices.text
@@ -216,6 +218,21 @@ local function draw_card(x, y, card_data)
         title, title_slice.x, title_slice.y, title_slice.w , title_slice.h,
         {font=title_font, align="center", valign="middle"}, 1 / s
     )
+
+    local attack_slice = frame.slices.attack
+    local attack = 6
+    draw_text(
+        attack, attack_slice.x, attack_slice.y, attack_slice.w , attack_slice.h,
+        {font=stat_font, align="center", valign="middle"}, 1 / s
+    )
+
+    local defend_slice = frame.slices.defend
+    local defend = 2
+    draw_text(
+        defend, defend_slice.x, defend_slice.y, defend_slice.w , defend_slice.h,
+        {font=stat_font, align="center", valign="middle"}, 1 / s
+    )
+
     gfx.pop()
 end
 

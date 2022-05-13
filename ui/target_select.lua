@@ -1,5 +1,7 @@
 local field_render = require "game.field_render"
 local ui = require "ui"
+local im_animation = require "tween.im_animation"
+local render = require "render"
 
 local function compute_targets(gamestate, filter)
     local position = field_render.compute_all_actor_position(gamestate)
@@ -26,11 +28,37 @@ local function compute_keymap(targets)
     return keymap
 end
 
+local function radius_animation(self)
+    local enter_animation = {
+        {radius = 0, dt=0.1},
+        {radius = 8, dt=0.1},
+        {radius = 2}
+    }
+
+    local stay_animation = {
+        {radius = 2, dt=0.5},
+        {radius = 8, dt=0.5},
+        {radius = 2}
+    }
+
+    self.imanime:play_once("circle", enter_animation)
+    while self.imanime:is_done("circle") do
+        coroutine.yield(self.imanime:get("circle"))
+    end
+
+    self.imanime:play("circle", stay_animation)
+    while true do
+        coroutine.yield(self.imanime:get("circle"))
+    end
+end
 
 local target_select = class()
 
 function target_select.create(gamestate, targets)
-    local this = setmetatable({}, target_select)
+    local this = setmetatable(
+        {},
+        target_select
+    )
     return this
 end
 
@@ -112,7 +140,7 @@ function target_select:draw()
 
     if not p then return end
 
-    gfx.setColor(0, 0, 0)
+    gfx.setColor(render.theme.red)
     gfx.circle("fill", p.x, p.y- 100, compute_size(self.state.time))
 end
 

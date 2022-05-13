@@ -45,12 +45,15 @@ function field_render.compute_all_actor_position(gamestate)
     return actor_pos
 end
 
-function field_render.draw_actor(game, id, x, y)
+function field_render.draw_actor(game, id, x, y, s)
+    local s = s or 1
     gfx.setColor(1, 1, 1)
     gfx.push()
 
     gfx.translate(x, y)
-    gfx.rectangle("fill", -25, 0, 50, -200)
+    --gfx.rectangle("fill", -25, 0, 50, -200)
+    image = get_atlas("art/characters"):get_frame("chibdigger")
+    image:draw("body", 0, 0, 0, s * 3, 3)
 
     gfx.pop()
 end
@@ -63,17 +66,13 @@ function field_render.draw(game)
     local enemy_order = gs:get(component.enemy_order, constants.field)
 
     for index, id in pairs(party_order) do
-        local pos = game.tweens.position:ensure(
-            id, field_render.party_position(index)
-        )
+        local pos = field_render.party_position(index)
         field_render.draw_actor(game, id, pos.x, pos.y)
     end
 
     for index, id in pairs(enemy_order) do
-        local pos = game.tweens.position:ensure(
-            id, field_render.enemy_position(index)
-        )
-        field_render.draw_actor(game, id, pos.x, pos.y)
+        local pos = field_render.enemy_position(index)
+        field_render.draw_actor(game, id, pos.x, pos.y, -1)
     end
 end
 

@@ -1,18 +1,16 @@
-local nw = require "nodeworks"
+local rh = {}
 
-local function handle_key(selected, keymap, key)
+local BASE = ...
+
+function rh.__index(t, k)
+    return require(BASE .. "." .. k)
+end
+
+function rh.key(cursor, keymap, key)
+    if not cursor then return end
     local km = keymap[key]
     if not km then return end
-    return km[selected]
+    return km[cursor]
 end
 
-local function key(selected, keymap, key)
-    return handle_key(selected, keymap, key)
-end
-
-
-
-return {
-    key=key,
-    confirm = require "ui.confirm_prompt"
-}
+return setmetatable(rh, rh)

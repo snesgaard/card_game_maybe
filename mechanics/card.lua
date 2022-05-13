@@ -24,9 +24,12 @@ function card_mechanics.discard(gs, user, card)
 
     if not index then return end
 
-    return gs
+    local info = {cards = list(card)}
+    local next_gs = gs
         :set(component.hand, user, hand:erase(index))
         :set(component.graveyard, user, discard:insert(card))
+
+    return next_gs, info
 end
 
 function card_mechanics.begin_card_play(gs, user, card)

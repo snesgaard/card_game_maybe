@@ -1,6 +1,6 @@
 local nw = require "nodeworks"
 local game = require "game"
-local mechanics = require "mechanics.card"
+local mechanics = require "mechanics"
 
 return function(ctx)
     ctx.game = game(ctx)
@@ -11,12 +11,15 @@ return function(ctx)
     local update = ctx:listen("update")
         :foreach(function(dt) ctx.game:update(dt) end)
 
+    ctx.game:step(mechanics.card.draw, ctx.game.id.player, 4)
+
     while ctx.alive do
+        ctx.game:pick_card(3, true)
         --ctx.game.ui.instruction:set_message("Pick a card")
-        local card = ctx.game:pick_card_from_hand(1, false):unpack()
+        --local card = ctx.game:pick_card_from_hand(1, false):unpack()
         --if ctx.game:press_to_confirm("Play card?") then
-        ctx.game:play_card(ctx.game.id.player, card)
+        --ctx.game:play_card(ctx.game.id.player, card)
     --    end
-        --ctx:yield()
+        ctx:yield()
     end
 end

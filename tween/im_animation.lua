@@ -13,6 +13,11 @@ function im_animation.create()
     )
 end
 
+function im_animation:set_ease(ease)
+    self.ease = ease
+    return self
+end
+
 function im_animation:update(dt)
     for id, t in pairs(self.time) do self.time[id] = t + dt end
     return self
@@ -20,7 +25,7 @@ end
 
 local function sum_frame_time(frames)
     local time = 0
-    for _, f in ipairs(frames) do time = time + f.dt end
+    for _, f in ipairs(frames) do time = time + (f.dt or 0) end
     return time
 end
 
@@ -49,11 +54,11 @@ local function find_frame(time, frames, once)
     local time = math.max(0, time)
     local total_animation_time = sum_frame_time(frames)
     local cycled_time = once and time or math.fmod(time, total_animation_time)
-    local ease = frames.ease
+    local ease = frames.ease or self.ease
 
     local frame_time = 0
     for index, frame in ipairs(frames) do
-        local next_time = frame_time + frame.dt
+        local next_time = frame_time + (frame.dt or 0)
 
         if frame_time <= cycled_time and cycled_time < next_time then
             return ease_frames(frames, index, cycled_time - frame_time, ease)

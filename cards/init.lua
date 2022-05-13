@@ -79,4 +79,11 @@ card.graceful_charity = {
     }
 }
 
+card.fireskull = {
+    title = "Fire Skull",
+    text = {
+        theme.key, "Entry: ", theme.normal, "Deal 6 damage"
+    }
+}
+
 return card
