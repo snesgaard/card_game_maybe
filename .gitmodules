@@ -1,6 +1,3 @@
 [submodule "nodeworks"]
 	path = nodeworks
 	url = ../nodeworks
-[submodule "LOVEDEBUG"]
-	path = LOVEDEBUG
-	url = https://github.com/Ranguna/LOVEDEBUG
