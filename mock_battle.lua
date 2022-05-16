@@ -12,16 +12,12 @@ return function(ctx)
     local update = ctx:listen("update")
         :foreach(function(dt) ctx.game:update(dt) end)
 
-    --ctx.game:step(mechanics.card.draw, ctx.game.id.player, 4)
-    ctx.game:step(
-        mechanics.combat.spawn_minion, minion.fireskull, "fireskull", "player", 1
-    )
-    ctx.game:step(
-        mechanics.combat.spawn_minion, minion.fireskull, "fireskull2", "player", -1
-    )
+    ctx.game:step(mechanics.card.draw, ctx.game.id.player, 4)
+    --ctx.game:spawn_minion(minion.fireskull, "player")
+    ctx.game:select_minion_spawn("player")
 
     while ctx.alive do
-        ctx.game:pick_card(3, true)
+        --ctx.game:pick_card(3, true)
         --ctx.game.ui.instruction:set_message("Pick a card")
         --local card = ctx.game:pick_card_from_hand(1, false):unpack()
         --if ctx.game:press_to_confirm("Play card?") then

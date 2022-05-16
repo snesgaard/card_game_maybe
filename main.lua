@@ -1,3 +1,5 @@
+--require "lovedebug"
+
 function class()
     local c = {}
     c.__index = c

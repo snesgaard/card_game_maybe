@@ -38,40 +38,20 @@ local layer_order = {
 
 local function initial_gamestate()
     return gamestate.state()
-    --[[
-    return gamestate.state()
-        :set(component.health, id.player, 5)
-        :set(component.health, id.enemy, 20)
-        :set(component.max_health, id.player, 10)
-        :set(component.max_health, id.enemy, 20)
-        :set(component.party_order, id.field, {id.player})
-        :set(component.enemy_order, id.field, {id.enemy})
-        :set(
-            component.hand,
-            id.player,
-            list()
-        )
-        :set(component.graveyard, id.player, list())
-        :set(
-            component.draw,
-            id.player,
-            List.map(
-                {
-                    cards.fireskull, cards.fireskull, cards.fireskull, cards.fireskull, cards.fireskull,
-                    cards.shovel, cards.shovel, cards.shovel, cards.shovel, cards.shovel
-                },
-                cards.instance
-            )
-        )
-        ]]--
 end
 
 local function ui_layer(layer, self)
     self.ui.card_select:draw()
 end
 
+local function draw_if_exist(ui)
+    if not ui or not ui.draw then return end
+    ui:draw()
+end
+
 local function field_layer(layer, game)
     field_render.draw(game)
+    draw_if_exist(game.ui.spawn_select)
 end
 
 local function initial_visualstate()
@@ -170,9 +150,14 @@ function game:pick_card(count, strict)
     return ui:action("pop"):unpack()
 end
 
+function game:select_minion_spawn(user)
+    local indices = {-4, -3, -2, -1, 1, 2, 3, 4}
+    return ui.minion_spawn_select(self, indices)
+end
+
 function game:spawn_minion(minion, user)
     local id = {}
-    local spawn_point = self:select_spawn()
+    local spawn_point = self:select_minion_spawn(user)
 
     if not spawn_point then return end
 
