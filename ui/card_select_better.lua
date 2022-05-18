@@ -25,15 +25,14 @@ local function compute_card_row(layout, mid, cards, revealed, dx)
 
         min_x = math.min(pos.x, min_x)
         max_x = math.max(pos.x + cw, max_x)
-
         if is_cursor then reveal_passed = reveal_passed + 1 end
+
     end
 
     local mean_x = (max_x + min_x) / 2
-    print(mean_x, mid.x, min_x, max_x)
 
     for _, card in ipairs(cards) do
-        layout[card].x = layout[card].x + mid.x - mean_x
+        --layout[card].x = layout[card].x + mid.x - mean_x
     end
 end
 
@@ -73,6 +72,13 @@ function hand_render.set_cards(ctx, state, cards)
         :set("layout", compute_layout(cards, state.selected, state.revealed))
 end
 
+function hand_render.reset(ctx, state)
+    return state
+        :set("selected", {})
+        :set("revealed", {})
+        :set("layout", compute_layout(state.cards, state.selected, state.revealed))
+end
+
 function hand_render.set_selected(ctx, state, selected)
     return state
         :set("selected", selected)
@@ -81,7 +87,7 @@ end
 
 function hand_render.set_revealed(ctx, state, revealed)
     return state
-        :set("selected", selected)
+        :set("revealed", revealed)
         :set("layout", compute_layout(state.cards, state.selected, revealed))
 end
 

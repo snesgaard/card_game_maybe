@@ -168,24 +168,43 @@ function game:spawn_minion(minion, user)
     game:step(mechanics.minion.spawn, minion, id, user, spawn_point)
 end
 
-function game:battle_loop()
+function game:pick_card_to_play()
     local cards = list(cards.shovel, cards.cure, cards.graceful_charity)
-    local selected = dict()
+    local keymap = ui.keymap_from_list(cards, "left", "right")
+    local state = {cursor = nil}
+
+    self.ui.card_select:action("reset")
     self.ui.card_select:action("set_cards", cards)
 
-    local select = self.ctx:listen("keypressed")
-        :map(tonumber)
+    local move_cursor = self.ctx:listen("keypressed")
+        :map(function(key)
+            return ui.key(state.cursor or "default", keymap, key)
+        end)
         :filter(identity)
-        :foreach(function(index)
-            local card = cards[index]
-            if not card then return end
-            selected[card] = not selected[card]
-            self.ui.card_select:action("set_selected", selected)
-            self.ui.card_select:action("set_revealed", selected)
+        :foreach(function(next_cursor)
+            state.cursor = next_cursor
+        end)
+        :foreach(function(next_cursor)
+            return self.ui.card_select:action("set_revealed", {[next_cursor] = true})
         end)
 
-    while self.ctx.alive do
+    local confirm = self.ctx:listen("keypressed")
+        :filter(function(key)
+            return key == "space" and state.cursor
+        end)
+        :latest()
+
+    while self.ctx.alive and not confirm:peek() do
         self.ctx:yield()
+    end
+
+    return state.cursor
+end
+
+function game:battle_loop()
+    while self.ctx.alive do
+        local card = self:pick_card_to_play()
+        print(card.title)
     end
 end
 
