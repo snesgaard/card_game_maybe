@@ -9,36 +9,10 @@ local images = {
     cursor_active = get_atlas("art/characters"):get_frame("spawn_cursor/active"),
 }
 
-
-local function compute_keymap(state)
-    local keymap = {left = {}, right = {}}
-
-    for i, index in ipairs(state.indices) do
-        keymap.left[index] = state.indices[i - 1]
-        keymap.right[index] = state.indices[i + 1]
-    end
-
-    return keymap
-end
-
-function minion_spawn.keypressed(ctx, state, key)
-    local next_cursor = ui.key(state.cursor, compute_keymap(state), key)
-    if next_cursor then
-        return state:set("cursor", next_cursor), true
-    end
-end
-
 local function draw_spawn(x, y, is_selected)
     gfx.setColor(1, 1, 1, 1)
     local im = is_selected and images.cursor_active or images.cursor_inactive
     im:draw("body", x, y, 0, constants.scale, constants.scale)
-end
-
-function minion_spawn.draw(ctx, state)
-    for _, index in ipairs(state.indices) do
-        local pos = field_render.actor_position(index)
-        draw_spawn(pos.x, pos.y, index == state.cursor)
-    end
 end
 
 local function draw_spawns(indices, cursor)

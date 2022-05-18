@@ -29,8 +29,8 @@ function field_render.enemy_position(index)
 end
 
 function field_render.compute_all_actor_position(gamestate)
-    local party_order = gamestate:get(component.party_order, constants.field)
-    local enemy_order = gamestate:get(component.enemy_order, constants.field)
+    local party_order = gamestate:get(component.party_order, constants.id.field)
+    local enemy_order = gamestate:get(component.enemy_order, constants.id.field)
 
     local actor_pos = {}
 
@@ -67,8 +67,8 @@ function field_render.draw(game)
     local gs = game.gamestate
     local vs = game.visualstate
 
-    local party_order = gs:get(component.party_order, constants.field)
-    local enemy_order = gs:get(component.enemy_order, constants.field)
+    local party_order = gs:get(component.party_order, constants.id.field)
+    local enemy_order = gs:get(component.enemy_order, constants.id.field)
 
     for index, id in pairs(party_order) do
         local pos = field_render.party_position(index)
@@ -80,7 +80,7 @@ function field_render.draw(game)
         field_render.draw_actor(game, id, pos.x, pos.y, -1)
     end
     ]]--
-    local f = game.gamestate:ensure(component.formation, constants.field)
+    local f = game.gamestate:ensure(component.formation, constants.id.field)
 
     for index, id in pairs(f) do
         local pos = field_render.actor_position(index)
@@ -97,8 +97,8 @@ function field_render.draw_ui(game)
     local gs = game.gamestate
     local vs = game.visualstate
 
-    local party_order = gs:get(component.party_order, constants.field)
-    local enemy_order = gs:get(component.enemy_order, constants.field)
+    local party_order = gs:get(component.party_order, constants.id.field)
+    local enemy_order = gs:get(component.enemy_order, constants.id.field)
     local all_order = {}
 
     for index, id in pairs(party_order) do
