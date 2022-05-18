@@ -185,14 +185,16 @@ local function draw_card(x, y, card_data)
     local image = get_atlas("art/characters"):get_frame("fireskull")
     local s = constants.scale
     gfx.push()
-    gfx.translate(x, y)
+    gfx.translate(x, y - frame.slices.body.y)
     gfx.scale(s)
+    gfx.translate(-frame.slices.body.x, -frame.slices.body.y)
 
 
     local bg_color = gfx.hex2color("9567c1")
     gfx.setColor(bg_color)
     gfx.rectangle("fill", frame.slices.image:unpack())
     gfx.setColor(1, 1, 1)
+
     image:draw(frame.slices.image.x, frame.slices.image.y)
     frame:draw(0, 0)
 

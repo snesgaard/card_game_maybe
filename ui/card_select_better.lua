@@ -3,9 +3,15 @@ local constants = require "game.constants"
 local render = require "render"
 
 local function compute_card_row(layout, mid, cards, revealed, dx)
+    if #cards == 0 then return end
+
     local count = #cards
     local dx = dx or 200
     local reveal_passed = 0
+    local cw = render.card_size().w
+
+    local min_x = math.huge
+    local max_x = -math.huge
 
     for index, card in ipairs(cards) do
         local is_cursor = revealed[card]
@@ -14,9 +20,20 @@ local function compute_card_row(layout, mid, cards, revealed, dx)
         local reveal_offset = reveal_passed * vec2(75, 0)
         local cursor_offset = is_cursor and vec2(0, -50) or vec2()
 
-        layout[card] = mid + index_offset + reveal_offset + cursor_offset
+        local pos = mid + index_offset + reveal_offset + cursor_offset
+        layout[card] = pos
+
+        min_x = math.min(pos.x, min_x)
+        max_x = math.max(pos.x + cw, max_x)
 
         if is_cursor then reveal_passed = reveal_passed + 1 end
+    end
+
+    local mean_x = (max_x + min_x) / 2
+    print(mean_x, mid.x, min_x, max_x)
+
+    for _, card in ipairs(cards) do
+        layout[card].x = layout[card].x + mid.x - mean_x
     end
 end
 
