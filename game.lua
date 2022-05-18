@@ -173,25 +173,21 @@ function game:pick_card_to_play()
     local keymap = ui.keymap_from_list(cards, "left", "right")
     local state = {cursor = nil}
 
-    self.ui.card_select:action("reset")
-    self.ui.card_select:action("set_cards", cards)
+    self.ui.card_select("reset")
+    self.ui.card_select("set_cards", cards)
 
     local move_cursor = self.ctx:listen("keypressed")
         :map(function(key)
             return ui.key(state.cursor or "default", keymap, key)
         end)
         :filter(identity)
+        :foreach(function(next_cursor) state.cursor = next_cursor end)
         :foreach(function(next_cursor)
-            state.cursor = next_cursor
-        end)
-        :foreach(function(next_cursor)
-            return self.ui.card_select:action("set_revealed", {[next_cursor] = true})
+            self.ui.card_select("set_revealed", {[next_cursor] = true})
         end)
 
     local confirm = self.ctx:listen("keypressed")
-        :filter(function(key)
-            return key == "space" and state.cursor
-        end)
+        :filter(function(key) return key == "space" and state.cursor end)
         :latest()
 
     while self.ctx.alive and not confirm:peek() do
@@ -204,7 +200,6 @@ end
 function game:battle_loop()
     while self.ctx.alive do
         local card = self:pick_card_to_play()
-        print(card.title)
     end
 end
 
