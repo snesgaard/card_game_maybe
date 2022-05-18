@@ -2,7 +2,7 @@
 --local _Debug table for holding all variables
 
 local function old_set_color(r, g, b, a)
-    return love.graphics.setColor(r / 255.0, g / 255.0, b / 255.0, a / 255.0)
+    return love.graphics.setColor(r / 255.0, g / 255.0, b / 255.0, (a or 1) / 255.0)
 end
 
 local _Debug = {
@@ -92,7 +92,7 @@ end
 
 
 --Error catcher
---[[
+
 _Debug.handleError = function(err)
 	if _DebugSettings.MultipleErrors == false then
 		for i,v in pairs(_Debug.errors) do
@@ -105,7 +105,9 @@ _Debug.handleError = function(err)
 	table.insert(_Debug.order, "e" .. tostring(#_Debug.errors))
 	table.insert(_Debug.onTopFeed, {"e" .. tostring(#_Debug.errors),0})
 end
-]]--
+
+
+--function _Debug.handleError(err) error(err) end
 
 
 --Get Linetype

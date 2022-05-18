@@ -96,7 +96,7 @@ function game.create(ctx)
         gamestate = initial_gamestate(),
         visualstate = initial_visualstate(),
         ui = {
-            card_select = gui(ui.card_ui, id.player),
+            card_select = gui(ui.card_select_better),
         },
         ctx = ctx
     }
@@ -166,6 +166,27 @@ function game:spawn_minion(minion, user)
     end
 
     game:step(mechanics.minion.spawn, minion, id, user, spawn_point)
+end
+
+function game:battle_loop()
+    local cards = list(cards.shovel, cards.cure, cards.graceful_charity)
+    local selected = dict()
+    self.ui.card_select:action("set_cards", cards)
+
+    local select = self.ctx:listen("keypressed")
+        :map(tonumber)
+        :filter(identity)
+        :foreach(function(index)
+            local card = cards[index]
+            if not card then return end
+            selected[card] = not selected[card]
+            self.ui.card_select:action("set_selected", selected)
+            self.ui.card_select:action("set_revealed", selected)
+        end)
+
+    while self.ctx.alive do
+        self.ctx:yield()
+    end
 end
 
 return game.create
