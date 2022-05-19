@@ -169,7 +169,10 @@ function game:spawn_minion(minion, user)
 end
 
 function game:pick_card_to_play()
-    local cards = list(cards.shovel, cards.cure, cards.graceful_charity)
+    local cards = list(
+        cards.skills.shovel, cards.minions.fireskull,
+        cards.skills.potion
+    )
     local keymap = ui.keymap_from_list(cards, "left", "right")
     local state = {cursor = nil}
 

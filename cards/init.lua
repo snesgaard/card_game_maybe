@@ -3,87 +3,32 @@ local mechanics = require "mechanics"
 local card = {}
 
 function card.instance(card_type)
+    if card_type == nil then
+        error("card type was nil")
+    end
     card_type.__index = card_type
     return setmetatable({}, card_type)
 end
 
-local theme = {
+card.theme = {
     normal = gfx.hex2color("f2eee3"),
     key = gfx.hex2color("a9dc54")
 }
 
-card.shovel = {
-    title = "Shovel",
-    damage = 5,
-    effect = function(game, user)
-        local target = game:select_target()
-        if not target then return false end
-        game:step(mechanics.combat.damage, user, target, card.shovel.damage)
-    end,
-    text = {
-        theme.normal,  function() return string.format("Deal %i", card.shovel.damage) end,
-        theme.key, " damage."
-    }
-}
+function card.minion(data)
+    data.type = "minion"
+    return data
+end
 
-card.cure = {
-    title = "Cure",
-    heal = 5,
-    effect = function(history, user, target)
-        local target = game:select_target()
+function card.skill(data)
+    data.type = "skill"
+    return data
+end
 
+local BASE = ...
 
-        game:advance(mechanics.combat.heal, user, target, card.cure.heal)
-    end,
-    text = {
-        theme.key, "Heal",
-        theme.normal, function() return string.format(" %i.", card.cure.heal) end
-    }
-}
+function card.__index(t, k)
+    return require(BASE .. "." .. k)
+end
 
-card.graceful_charity = {
-    title = "Graceful Charity",
-    discard = 2,
-    draw = 3,
-    effect = function(game, user)
-        local target = game:select_self(user)
-        if not target then return false end
-
-        game:step(mechanics.card.draw, target, 3)
-
-        local function pick_discards()
-            while true do
-                local discards = game:pick_card_from_hand(
-                    2, false, "Discard 2 cards"
-                )
-                if game:press_to_confirm("Discard these cards?") then
-                    return discards
-                end
-            end
-        end
-
-
-        for _, card in ipairs(pick_discards()) do
-            game:step(mechanics.card.discard, target, card)
-        end
-    end,
-    text = {
-        theme.key, "Draw",
-        theme.normal, function()
-            return string.format(" %i cards.\n", card.graceful_charity.draw)
-        end,
-        theme.key, "Discard",
-        theme.normal, function()
-            return string.format(" %i cards.", card.graceful_charity.discard)
-        end
-    }
-}
-
-card.fireskull = {
-    title = "Fire Skull",
-    text = {
-        theme.key, "Entry: ", theme.normal, "Deal 6 damage"
-    }
-}
-
-return card
+return setmetatable(card, card)

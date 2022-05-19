@@ -180,9 +180,53 @@ local function create_font(...)
     return gfx.newFont("art/fonts/smol.ttf", ...)
 end
 
+local function frame_from_card_type(card_type)
+    if card_type == "minion" then
+        return "card/minion"
+    elseif card_type == "skill" then
+        return "card/skill"
+    else
+        return error("Unknown card type %s", card_type)
+    end
+end
+
+local function render_text(card_data)
+    if type(card_data.text) == "table" then
+        return List.map(card_data.text, function(block)
+            if type(block) == "function" then return block(card_data) end
+
+            return block
+        end)
+    else
+        return card_data.text or ""
+    end
+end
+
+local function draw_minion_stats(frame, card_data)
+    if card_data.type ~= "minion" then return end
+
+    local s = constants.scale
+
+    local attack_slice = frame.slices.attack
+    local attack = card_data.attack or "?"
+    draw_text(
+        attack, attack_slice.x, attack_slice.y, attack_slice.w , attack_slice.h,
+        {font=stat_font, align="center", valign="middle"}, 1 / s
+    )
+
+    local defend_slice = frame.slices.defend
+    local defend = card_data.defend or "?"
+    draw_text(
+        defend, defend_slice.x, defend_slice.y, defend_slice.w , defend_slice.h,
+        {font=stat_font, align="center", valign="middle"}, 1 / s
+    )
+end
+
 local function draw_card(x, y, card_data)
-    local frame = get_atlas("art/characters"):get_frame("card/minion")
-    local image = get_atlas("art/characters"):get_frame("fireskull")
+    local frame = get_atlas("art/characters"):get_frame(
+        frame_from_card_type(card_data.type)
+    )
+    local image = card_data.image
     local s = constants.scale
     gfx.push()
     gfx.translate(x, y - frame.slices.body.y)
@@ -201,11 +245,7 @@ local function draw_card(x, y, card_data)
     local text_slice = frame.slices.text
     local black = gfx.hex2color("f2eee3")
     local key = gfx.hex2color("a9dc54")
-    local text = List.map(card_data.text, function(block)
-        if type(block) == "function" then return block(card_data) end
-
-        return block
-    end)
+    local text = render_text(card_data)
     gfx.setFont(card_font)
 
     gfx.setColor(1, 1, 1)
@@ -221,19 +261,7 @@ local function draw_card(x, y, card_data)
         {font=title_font, align="center", valign="middle"}, 1 / s
     )
 
-    local attack_slice = frame.slices.attack
-    local attack = 6
-    draw_text(
-        attack, attack_slice.x, attack_slice.y, attack_slice.w , attack_slice.h,
-        {font=stat_font, align="center", valign="middle"}, 1 / s
-    )
-
-    local defend_slice = frame.slices.defend
-    local defend = 2
-    draw_text(
-        defend, defend_slice.x, defend_slice.y, defend_slice.w , defend_slice.h,
-        {font=stat_font, align="center", valign="middle"}, 1 / s
-    )
+    draw_minion_stats(frame, card_data)
 
     gfx.pop()
 end
