@@ -41,7 +41,9 @@ local function initial_gamestate()
 end
 
 local function ui_layer(layer, self)
+    self.ui.actor_status:draw()
     self.ui.card_select:draw()
+    self.ui.target_select:draw()
 end
 
 local function draw_if_exist(ui)
@@ -97,6 +99,8 @@ function game.create(ctx)
         visualstate = initial_visualstate(),
         ui = {
             card_select = gui(ui.card_select_better),
+            target_select = gui(ui.target_select.ui),
+            actor_status = gui(ui.actor_status)
         },
         ctx = ctx
     }
@@ -117,6 +121,11 @@ function game:step(...)
         --for _, ui in pairs(self.ui) do
         --    ui:action(step.func, step.gamestate, step)
         --end
+
+        for _, ui in pairs(self.ui) do
+            ui:action(step.func, step.gamestate, step)
+            ui:action("step", step.gamestate, step)
+        end
     end
 
     return hist
@@ -173,6 +182,7 @@ function game:pick_card_to_play()
         cards.skills.shovel, cards.minions.fireskull,
         cards.skills.potion, cards.minions.fireskull
     ):map(instance)
+
     local keymap = ui.keymap_from_list(cards, "left", "right")
     local state = {cursor = nil}
 
@@ -184,29 +194,66 @@ function game:pick_card_to_play()
             return ui.key(state.cursor or "default", keymap, key)
         end)
         :filter(identity)
-        :foreach(function(next_cursor) state.cursor = next_cursor end)
-        :foreach(function(next_cursor)
-            self.ui.card_select("set_revealed", {[next_cursor] = true})
-        end)
+        :collect()
 
     local confirm = self.ctx:listen("keypressed")
         :filter(function(key) return key == "space" and state.cursor end)
         :latest()
 
+    local function handle_cursor(next_cursor)
+        local nc = unpack(next_cursor)
+        state.cursor = nc
+        self.ui.card_select("set_revealed", {[nc] = true})
+    end
+
     while self.ctx.alive and not confirm:peek() do
+        move_cursor:pop():foreach(handle_cursor)
+
         self.ctx:yield()
     end
 
     return state.cursor
 end
 
+function game:select_target(filter)
+    ui.target_select(self, self.ui.target_select)
+end
+
+function game:play_minion(card)
+    if card.type ~= "minion" then return end
+
+    local index = self:select_minion_spawn()
+    if not index then return end
+    self:step(
+        mechanics.combat.spawn_minion, card,
+        constants.id.player, index
+    )
+end
+
+function game:play_skill(card)
+    if card.type ~= "skill" then return false end
+
+    if not card.effect then return true end
+
+    local was_interrupted = card.effect(self)
+
+    return not was_interrupted
+end
+
+function game:play_card(card)
+
+end
+
 function game:battle_loop()
+
+    self:step(
+        mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
+        constants.id.player, 1
+    )
+
     while self.ctx.alive do
-        self:step(
-            mechanics.combat.spawn_minion, cards.minions.fireskull,
-            constants.id.player, 1
-        )
         local card = self:pick_card_to_play()
+        self:play_minion(card)
     end
 end
 

@@ -48,7 +48,7 @@ return function(game, indices)
                 return false
             end
         end)
-        :filter(function(key) return key end)
+        :filter(function(key) return key ~= nil end)
 
     local mouse_confirm = game.ctx:listen("mousepressed")
         :filter(function(x, y, button)

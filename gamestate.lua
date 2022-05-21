@@ -12,6 +12,7 @@ end
 
 function gamestate:get(component, id)
     local c = self[component] or {}
+    if id == nil then error("Id was nil") end
     return c[id]
 end
 

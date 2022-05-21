@@ -29,19 +29,14 @@ function field_render.enemy_position(index)
 end
 
 function field_render.compute_all_actor_position(gamestate)
-    local party_order = gamestate:get(component.party_order, constants.id.field)
-    local enemy_order = gamestate:get(component.enemy_order, constants.id.field)
+    local formation = gamestate:get(component.formation, constants.id.field)
 
     local actor_pos = {}
 
-    for index, id in pairs(party_order) do
-        actor_pos[id] = field_render.party_position(index)
+    for index, id in pairs(formation) do
+        actor_pos[id] = field_render.actor_position(index)
     end
-
-    for index, id in pairs(enemy_order) do
-        actor_pos[id] = field_render.enemy_position(index)
-    end
-
+    
     return actor_pos
 end
 

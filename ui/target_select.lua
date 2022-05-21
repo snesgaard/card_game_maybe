@@ -1,148 +1,109 @@
 local field_render = require "game.field_render"
-local ui = require "ui"
+local ui_glob = require "ui"
 local im_animation = require "tween.im_animation"
 local render = require "render"
+local constants = require "game.constants"
+local component = require "component"
 
-local function compute_targets(gamestate, filter)
-    local position = field_render.compute_all_actor_position(gamestate)
-    local targets = list()
+local ui = {}
 
-    for id, _ in pairs(position) do
-        if filter == nil or filter(gamestate, id) then table.insert(targets, id) end
-    end
-
-    return position, targets
+function ui.init()
+    return dict{}
 end
 
-local function compute_keymap(targets)
-    local keymap = {left = {}, right = {}}
-
-    for i, id in ipairs(targets) do
-        keymap.left[id] = targets[i - 1]
-        keymap.right[id] = targets[i + 1]
-    end
-
-    keymap.left.default = List.head(targets)
-    keymap.right.default = List.tail(targets)
-
-    return keymap
+function ui.set_targets(ctx, state, targets)
+    return state:set("targets", targets)
 end
 
-local function radius_animation(self)
-    local enter_animation = {
-        {radius = 0, dt=0.1},
-        {radius = 8, dt=0.1},
-        {radius = 2}
+function ui.set_position(ctx, state, position)
+    return state:set("position", position)
+end
+
+function ui.set_highlight(ctx, state, highlight)
+    return state:set("highlight", highlight)
+end
+
+function ui.clear() return dict{} end
+
+function ui.draw(ctx, state)
+    if not state.targets then return end
+    if not state.position then return end
+    local highlight = state.highlight or {}
+
+    gfx.setColor(1, 1, 1)
+    for _, id in ipairs(state.targets) do
+        local pos = state.position[id]
+        local radius = highlight[id] and 10 or 2
+        if pos then gfx.circle("fill", pos.x, pos.y, radius) end
+    end
+end
+
+local function interaction(game, ui, targets, positions)
+    if #targets == nil then return end
+
+    ui:action("set_targets", targets)
+    ui:action("set_highlight", {})
+    ui:action("set_position", positions)
+
+    local keymap = ui_glob.keymap_from_list(targets, "left", "right")
+
+    local state = {
+        cursor = List.head(targets),
     }
 
-    local stay_animation = {
-        {radius = 2, dt=0.5},
-        {radius = 8, dt=0.5},
-        {radius = 2}
-    }
+    local confirm = game.ctx:listen("keypressed")
+        :map(function(key)
+            local km = {space=true, backspace=false}
+            return km[key]
+        end)
+        :filter(function(v) return v ~= nil end)
+        :latest()
 
-    self.imanime:play_once("circle", enter_animation)
-    while self.imanime:is_done("circle") do
-        coroutine.yield(self.imanime:get("circle"))
+    local cursor = game.ctx:listen("keypressed")
+        :map(function(key)
+            return ui_glob.key(state.cursor or "default", keymap, key)
+        end)
+        :filter(identity)
+        :foreach(function(cursor) state.cursor = cursor end)
+
+    local highlight = cursor
+        :map(function(cursor) return {[cursor] = true} end)
+        :latest()
+
+    cursor:emit{state.cursor}
+
+    while game.ctx.alive and confirm:empty() do
+        ui("set_highlight", highlight:peek())
+        game.ctx:yield()
     end
 
-    self.imanime:play("circle", stay_animation)
-    while true do
-        coroutine.yield(self.imanime:get("circle"))
-    end
+    ui("clear")
+
+    if confirm:peek() then return state.cursor end
 end
 
-local target_select = class()
-
-function target_select.create(gamestate, targets)
-    local this = setmetatable(
-        {},
-        target_select
+local function interaction_with_gamestate(game, ui, filter)
+    local formation = game.gamestate:ensure(
+        component.formation, constants.id.field
     )
-    return this
+    local filter = filter or function() return true end
+
+    if formation:size() == 0 then return end
+
+    local all_positions = field_render.compute_all_actor_position(game.gamestate)
+
+    local targets = formation:values():filter(filter):sort(function(a, b)
+        local pos_a = all_positions[a] or vec2()
+        local pos_b = all_positions[b] or vec2()
+
+        return pos_a.x < pos_b.x
+    end)
+
+    return interaction(game, ui, targets, all_positions)
 end
 
-function target_select:configure(gamestate, filter)
-    local positions, targets = compute_targets(gamestate, filter)
-    self.state = dict()
-        :set("gamestate", gamestate)
-        :set("filter", filter)
-        :set("keymap", compute_keymap(targets))
-        :set("positions", positions)
-        :set("cursor", targets:head())
-        :set("time", 0)
-end
-
-function target_select:clear()
-    self.state = nil
-    return self
-end
-
-function target_select:keypressed(key)
-    if not self.state then return end
-    local next_cursor = ui.key(self.state.cursor, self.state.keymap, key)
-
-    if next_cursor then
-        self.state = self.state
-            :set("cursor", next_cursor)
-            :set("time", 0)
-        return true
-    end
-
-    if key == "space" and self.state.cursor then
-        self.state = self.state:set("done", true)
-        return true
-    end
-
-    if key == "backspace" then
-        self.state = self.state:set("done", true):set("cursor", nil)
-        return true
-    end
-end
-
-function target_select:is_done()
-    local s = self.state or {}
-    return s.done
-end
-
-function target_select:pop()
-    local s = self.state
-    self:clear()
-    return s.cursor
-end
-
-function target_select:update(dt)
-    if not self.state then return end
-    self.state.time = self.state.time + dt
-end
-
-local function compute_size(time)
-    local min, max = 3, 8
-    local expand = 12
-    local expand_time = 0.25
-
-    if time < expand_time then
-        local t = -math.cos(time * math.pi * 2 / expand_time) / 2 + 1
-        return t * expand + (1 - t) * min
-    end
-
-    local dr = max - min
-    local t = (-math.cos(time - expand_time) / 2 + 1)
-    return t * max + (1 - t) * min
-end
-
-function target_select:draw()
-    if not self.state then return end
-    if not self.state.cursor then return end
-
-    local c = self.state.cursor
-    local p = self.state.positions[c]
-
-    if not p then return end
-
-    gfx.setColor(render.theme.red)
-    gfx.circle("fill", p.x, p.y- 100, compute_size(self.state.time))
-end
-
-
-return target_select.create
+return {
+    ui = ui,
+    interaction = interaction,
+    interaction_with_gamestate = interaction_with_gamestate
+}
