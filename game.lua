@@ -114,9 +114,9 @@ function game:step(...)
     for _, step in ipairs(hist.steps) do
         self.gamestate = step.gamestate
 
-        for _, ui in pairs(self.ui) do
-            ui:action(step.func, step.gamestate, step)
-        end
+        --for _, ui in pairs(self.ui) do
+        --    ui:action(step.func, step.gamestate, step)
+        --end
     end
 
     return hist
@@ -171,8 +171,8 @@ end
 function game:pick_card_to_play()
     local cards = list(
         cards.skills.shovel, cards.minions.fireskull,
-        cards.skills.potion
-    )
+        cards.skills.potion, cards.minions.fireskull
+    ):map(instance)
     local keymap = ui.keymap_from_list(cards, "left", "right")
     local state = {cursor = nil}
 
@@ -202,6 +202,10 @@ end
 
 function game:battle_loop()
     while self.ctx.alive do
+        self:step(
+            mechanics.combat.spawn_minion, cards.minions.fireskull,
+            constants.id.player, 1
+        )
         local card = self:pick_card_to_play()
     end
 end

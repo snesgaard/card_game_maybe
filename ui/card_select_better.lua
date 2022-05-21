@@ -101,7 +101,7 @@ function hand_render.draw(ctx, state)
         local pos = layout[card]
         if pos then
             local pos = ctx:tween("position"):move_to(card, pos, 0.1)
-            render.draw_card(pos.x, pos.y, card)
+            render.draw_card(pos.x, pos.y, card, gamestate)
         end
     end
 end

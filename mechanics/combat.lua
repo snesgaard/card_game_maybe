@@ -52,21 +52,32 @@ function combat.heal(gs, target, heal)
     return next_gs, info
 end
 
-function combat.spawn_minion(gs, minion, id, master, spawn_point)
-    print(minion, id, master, spawn_point)
+local function id_gen(s)
+    local i = 0
+    while true do
+        s = coroutine.yield(s .. tostring(i))
+        i = i + 1
+    end
+end
+
+
+function combat.spawn_minion(gs, minion_card, master, spawn_point)
     local formation = gs:ensure(component.formation, constants.field)
     local prev_id = formation[spawn_point]
+    local id = minion_card
 
-    print(spawn_point, id, constants.field)
     if prev_id then return end
 
     local next_gs = gs
-        :set(component.health, id, minion.health or 0)
-        :set(component.max_health, id, minion.health or 0)
-        :set(component.attack, id, minion.attack or 0)
-        :set(component.type, id, minion)
+        :set(component.health, id, minion_card.health or 0)
+        :set(component.max_health, id, minion_card.health or 0)
+        :set(component.attack, id, minion_card.attack or 0)
+        :set(component.type, id, minion_card)
         :set(component.master, id, master)
-        :set(component.formation, constants.field, formation:set(spawn_point, id))
+        :set(
+            component.formation, constants.id.field,
+            formation:set(spawn_point, id)
+        )
 
 
     local info = {

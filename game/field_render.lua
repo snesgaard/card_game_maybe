@@ -55,31 +55,14 @@ function field_render.draw_actor(game, id, x, y, s)
     if not type then
         gfx.rectangle("fill", -25, 0, 50, -200)
     else
-        image = get_atlas("art/characters"):get_frame(type.animation.idle)
-        image:draw("body", 0, 0, 0, s * 3, 3)
+        local image = type.sprite.idle
+        image:head():draw("body", 0, 0, 0, s * 3, 3)
     end
 
     gfx.pop()
 end
 
 function field_render.draw(game)
-    --[[
-    local gs = game.gamestate
-    local vs = game.visualstate
-
-    local party_order = gs:get(component.party_order, constants.id.field)
-    local enemy_order = gs:get(component.enemy_order, constants.id.field)
-
-    for index, id in pairs(party_order) do
-        local pos = field_render.party_position(index)
-        field_render.draw_actor(game, id, pos.x, pos.y)
-    end
-
-    for index, id in pairs(enemy_order) do
-        local pos = field_render.enemy_position(index)
-        field_render.draw_actor(game, id, pos.x, pos.y, -1)
-    end
-    ]]--
     local f = game.gamestate:ensure(component.formation, constants.id.field)
 
     for index, id in pairs(f) do

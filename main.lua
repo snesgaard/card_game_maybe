@@ -6,6 +6,11 @@ function class()
     return c
 end
 
+function instance(c)
+    c.__index = c
+    return setmetatable({}, c)
+end
+
 local nw = require "nodeworks"
 local mock_battle = require "mock_battle"
 
