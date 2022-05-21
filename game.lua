@@ -216,7 +216,7 @@ function game:pick_card_to_play()
 end
 
 function game:select_target(filter)
-    ui.target_select(self, self.ui.target_select)
+    return ui.target_select.interaction_with_gamestate(self, self.ui.target_select, filter)
 end
 
 function game:play_minion(card)
@@ -235,13 +235,14 @@ function game:play_skill(card)
 
     if not card.effect then return true end
 
-    local was_interrupted = card.effect(self)
+    local was_interrupted = card.effect(self, constants.id.player, card)
 
     return not was_interrupted
 end
 
 function game:play_card(card)
-
+    self:play_minion(card)
+    self:play_skill(card)
 end
 
 function game:battle_loop()
@@ -253,7 +254,7 @@ function game:battle_loop()
 
     while self.ctx.alive do
         local card = self:pick_card_to_play()
-        self:play_minion(card)
+        self:play_card(card)
     end
 end
 
