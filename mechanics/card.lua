@@ -2,16 +2,18 @@ local component = require "component"
 
 local card_mechanics = {}
 
-function card_mechanics.draw(gs, user, num_cards)
+function card_mechanics.draw(gs, user)
     local draw = gs:get(component.draw, user) or list()
     local hand = gs:get(component.hand, user) or list()
 
-    local cards_to_add = draw:sub(1, num_cards)
-    local draw_left = draw:sub(num_cards + 1, #draw)
+    local card_to_add = draw:head()
+    local draw_left = draw:body()
+
+    print(card_to_add)
 
     local info = {cards = cards_to_add}
     local next_gs = gs
-        :set(component.hand, user, hand + cards_to_add)
+        :set(component.hand, user, hand:insert(card_to_add))
         :set(component.draw, user, draw_left)
 
     return next_gs, info

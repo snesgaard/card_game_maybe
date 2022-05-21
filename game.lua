@@ -245,8 +245,22 @@ function game:play_card(card)
     self:play_skill(card)
 end
 
-function game:battle_loop()
+function game:setup_battle(player, enemy)
+    self.gamestate = gamestate.state()
 
+    local deck = player.deck or list()
+    local draw = deck:map(instance):shuffle()
+
+    print(deck:size())
+
+    self.gamestate:set(component.draw, constants.id.player, draw)
+
+    for i = 1, constants.initial_draw do
+        self:step(mechanics.card.draw, constants.id.player)
+    end
+end
+
+function game:battle_loop()
     self:step(
         mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
         constants.id.player, 1
