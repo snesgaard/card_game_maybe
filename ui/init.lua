@@ -25,8 +25,10 @@ function rh.keymap_from_list(items, decrease, increase, wrap)
     end
 
     local head, tail = List.head(items), List.tail(items)
-    keymap[decrease][head] = tail
-    keymap[increase][tail] = head
+    if tail and head then
+        keymap[decrease][head] = tail
+        keymap[increase][tail] = head
+    end
 
     keymap[decrease].default = tail
     keymap[increase].default = head

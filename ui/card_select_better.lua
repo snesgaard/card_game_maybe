@@ -1,6 +1,7 @@
 local component = require "component"
 local constants = require "game.constants"
 local render = require "render"
+local mechanics =  require "mechanics"
 
 local function compute_card_row(layout, mid, cards, revealed, dx)
     if #cards == 0 then return end
@@ -36,7 +37,7 @@ local function compute_card_row(layout, mid, cards, revealed, dx)
     end
 end
 
-local function compute_layout(cards, selected, revealed)
+local function compute_layout(cards, selected, revealed, being_played)
     local cards = cards or {}
     local selected = selected or {}
     local revealed = revealed or {}
@@ -50,6 +51,11 @@ local function compute_layout(cards, selected, revealed)
 
     compute_card_row(layout, vec2(w / 2, h - 400), hand, revealed)
     compute_card_row(layout, vec2(w / 2, 100), select, revealed)
+
+    if being_played then
+        local cw = render.card_size().w
+        layout[being_played] = vec2(w / 2 - cw / 2, 25)
+    end
 
     return layout
 end
@@ -79,6 +85,21 @@ function hand_render.reset(ctx, state)
         :set("layout", compute_layout(state.cards, state.selected, state.revealed))
 end
 
+hand_render[mechanics.card.draw] = function(ctx, state, gamestate, step)
+    if step.info.card then
+        ctx:tween("position"):warp_to(step.info.card, vec2(-100, 1000))
+    end
+end
+
+function hand_render.step(ctx, state, gamestate)
+    local cards = gamestate:get(component.hand, constants.id.player)
+    local being_played = gamestate:get(component.card_being_played, constants.id.player)
+    return state
+        :set("cards", cards)
+        :set("being_played", being_played)
+        :set("layout", compute_layout(cards, state.selected, state.revealed, being_played))
+end
+
 function hand_render.set_selected(ctx, state, selected)
     return state
         :set("selected", selected)
@@ -104,6 +125,14 @@ function hand_render.draw(ctx, state)
             render.draw_card(pos.x, pos.y, card, gamestate)
         end
     end
+
+    local being_played = state.being_played
+
+    if not being_played then return end
+
+    local pos = layout[being_played]
+    local pos = ctx:tween("position"):move_to(being_played, pos, 0.1)
+    render.draw_card(pos.x, pos.y, being_played)
 end
 
 return hand_render

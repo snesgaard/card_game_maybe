@@ -9,9 +9,8 @@ function card_mechanics.draw(gs, user)
     local card_to_add = draw:head()
     local draw_left = draw:body()
 
-    print(card_to_add)
+    local info = {card = card_to_add}
 
-    local info = {cards = cards_to_add}
     local next_gs = gs
         :set(component.hand, user, hand:insert(card_to_add))
         :set(component.draw, user, draw_left)
@@ -35,9 +34,9 @@ function card_mechanics.discard(gs, user, card)
 end
 
 function card_mechanics.begin_card_play(gs, user, card)
-    local hand = gs:get(component.hand, user)
-    local draw = gs:get(component.draw, user)
-    local graveyard = gs:get(component.graveyard, user)
+    local hand = gs:ensure(component.hand, user)
+    local draw = gs:ensure(component.draw, user)
+    local graveyard = gs:ensure(component.graveyard, user)
 
     local card_being_played = gs:get(component.card_being_played, user)
 

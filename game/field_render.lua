@@ -7,8 +7,8 @@ function field_render.actor_position(index)
     local w, h = gfx.getWidth(), gfx.getHeight()
 
     local pos = vec2(w / 2, h / 2)
-    local base_offset = 200
-    local offset = 160
+    local base_offset = 75
+    local offset = 200
     if index < 0 then
         pos.x = pos.x - base_offset
     elseif index > 0 then
@@ -36,7 +36,7 @@ function field_render.compute_all_actor_position(gamestate)
     for index, id in pairs(formation) do
         actor_pos[id] = field_render.actor_position(index)
     end
-    
+
     return actor_pos
 end
 

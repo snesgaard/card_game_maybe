@@ -52,6 +52,8 @@ function combat.heal(gs, target, heal)
     return next_gs, info
 end
 
+function combat.overwrite(gs, next_gs) return next_gs end
+
 local function id_gen(s)
     local i = 0
     while true do

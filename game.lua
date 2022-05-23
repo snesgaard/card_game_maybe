@@ -178,13 +178,17 @@ function game:spawn_minion(minion, user)
 end
 
 function game:pick_card_to_play()
-    local cards = list(
-        cards.skills.shovel, cards.minions.fireskull,
-        cards.skills.potion, cards.minions.fireskull
-    ):map(instance)
+
+    local cards = self.gamestate:get(component.hand, constants.id.player)
+    local memory = self.ui.card_select.memory or list()
+    print(memory)
+    local valid_memory = memory:filter(function(card)
+        return cards:argfind(card)
+    end)
 
     local keymap = ui.keymap_from_list(cards, "left", "right")
-    local state = {cursor = nil}
+
+    local state = {cursor = valid_memory:head()}
 
     self.ui.card_select("reset")
     self.ui.card_select("set_cards", cards)
@@ -202,15 +206,22 @@ function game:pick_card_to_play()
 
     local function handle_cursor(next_cursor)
         local nc = unpack(next_cursor)
+        if not nc then return end
         state.cursor = nc
         self.ui.card_select("set_revealed", {[nc] = true})
     end
+
+    handle_cursor{state.cursor}
 
     while self.ctx.alive and not confirm:peek() do
         move_cursor:pop():foreach(handle_cursor)
 
         self.ctx:yield()
     end
+
+    self.ui.card_select.memory = list(
+        state.cursor, keymap.right[state.cursor], keymap.left[state.cursor]
+    )
 
     return state.cursor
 end
@@ -223,7 +234,8 @@ function game:play_minion(card)
     if card.type ~= "minion" then return end
 
     local index = self:select_minion_spawn()
-    if not index then return end
+    if not index then return true end
+
     self:step(
         mechanics.combat.spawn_minion, card,
         constants.id.player, index
@@ -231,18 +243,31 @@ function game:play_minion(card)
 end
 
 function game:play_skill(card)
-    if card.type ~= "skill" then return false end
+    if card.type ~= "skill" then return end
 
-    if not card.effect then return true end
+    if not card.effect then return end
 
     local was_interrupted = card.effect(self, constants.id.player, card)
 
-    return not was_interrupted
+    return was_interrupted
 end
 
 function game:play_card(card)
-    self:play_minion(card)
-    self:play_skill(card)
+    local gs_before_play = self.gamestate
+
+    self:step(mechanics.card.begin_card_play, constants.id.player, card)
+
+    local play_methods = list(game.play_skill, game.play_minion)
+
+    local was_interrupted = play_methods:reduce(function(interrupted, method)
+        return interrupted or method(self, card)
+    end, false)
+
+    if not was_interrupted then
+        self:step(mechanics.card.end_card_play, constants.id.player)
+    else
+        self:step(mechanics.combat.overwrite, gs_before_play)
+    end
 end
 
 function game:setup_battle(player, enemy)
@@ -251,9 +276,7 @@ function game:setup_battle(player, enemy)
     local deck = player.deck or list()
     local draw = deck:map(instance):shuffle()
 
-    print(deck:size())
-
-    self.gamestate:set(component.draw, constants.id.player, draw)
+    self.gamestate = self.gamestate:set(component.draw, constants.id.player, draw)
 
     for i = 1, constants.initial_draw do
         self:step(mechanics.card.draw, constants.id.player)

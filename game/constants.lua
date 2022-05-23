@@ -4,5 +4,6 @@ return {
         field = "field",
         enemy = "enemy"
     },
-    initial_draw = 5
+    initial_draw = 5,
+    scale = 4
 }

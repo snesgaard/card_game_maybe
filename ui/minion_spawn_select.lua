@@ -88,7 +88,7 @@ return function(game, indices)
             draw_spawns(indices, state.cursor)
 
             for _, hb in pairs(mouse_hitbox) do
-                gfx.rectangle("line", hb:unpack())
+                --gfx.rectangle("line", hb:unpack())
             end
         end
         game.ctx:yield()

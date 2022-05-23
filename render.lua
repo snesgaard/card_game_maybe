@@ -215,7 +215,7 @@ local function draw_minion_stats(frame, card_data)
     )
 
     local defend_slice = frame.slices.defend
-    local defend = card_data.defend or "?"
+    local defend = card_data.health or "?"
     draw_text(
         defend, defend_slice.x, defend_slice.y, defend_slice.w , defend_slice.h,
         {font=stat_font, align="center", valign="middle"}, 1 / s
@@ -273,12 +273,12 @@ local function card_size()
 end
 
 local theme = {
-    white = gfx.hex2color("f2eee3"),
-    green = gfx.hex2color("a9dc54"),
-    dark = gfx.hex2color("461d3f"),
-    red =  gfx.hex2color("a03683"),
-    dark_red = gfx.hex2color("641f4c"),
-    light_red = gfx.hex2color("c36e89")
+    white = gfx.hex2color("efe6e1"),
+    green = gfx.hex2color("859b57"),
+    dark = gfx.hex2color("481e43"),
+    red =  gfx.hex2color("a24473"),
+    dark_red = gfx.hex2color("672f6c"),
+    light_red = gfx.hex2color("cb756c")
 }
 
 return {
