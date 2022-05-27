@@ -12,12 +12,16 @@ function instance(c)
 end
 
 local nw = require "nodeworks"
-local mock_battle = require "mock_battle"
 
-function love.load()
+function love.load(args)
+    if unpack(args) == "test" then
+        require "test"
+        love.event.quit()
+        return
+    end
     gfx.setDefaultFilter("nearest", "nearest")
     world = nw.ecs.world()
-    world:push(mock_battle)
+    --world:push(mock_battle)
 end
 
 

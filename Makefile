@@ -3,3 +3,6 @@ build:
 
 play: build
 	love .
+
+test: build
+	love . test

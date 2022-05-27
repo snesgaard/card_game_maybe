@@ -54,13 +54,21 @@ local function unpack_args(args)
     end
 end
 
+function gamestate:instance(id, components)
+    local state = self
+
+    for comp, args in pairs(components) do
+        state = state:set(comp, id, unpack_args(args))
+    end
+
+    return state
+end
+
 function gamestate:populate(entities)
     local state = self
 
     for id, components in pairs(entities) do
-        for comp, args in pairs(components) do
-            state = state:set(comp, id, unpack_args(args))
-        end
+        state = state:instance(id, components)
     end
 
     return state
@@ -116,7 +124,7 @@ epoch.__index = epoch
 function epoch.create(gamestate)
     return setmetatable(
         {
-            initial_gamestate = gamestate
+            initial_gamestate = gamestate,
             spinning = false,
             transforms = list(),
             steps = list()
@@ -127,7 +135,7 @@ end
 
 function epoch:invoke(transform, ...)
     local gamestate = self:tail()
-    local next_gamestate, info = transform(self, gamestate, ..)
+    local next_gamestate, info = transform(self, gamestate, ...)
 
     local step = {
         gamestate = next_gamestate or gamestate,
@@ -192,4 +200,4 @@ function epoch:__call(...)
     self:spin()
 end
 
-return {state=gamestate.create, history=history.create}
+return {state=gamestate.create, epoch=epoch.create}
