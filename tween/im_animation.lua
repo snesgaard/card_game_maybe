@@ -70,7 +70,7 @@ local function find_frame(time, frames, once)
     return List.tail(frames), true
 end
 
-function im_animation:get_frame(id)
+function im_animation:get(id)
     local frames = self.frames[id]
     if not frames then return end
     local time = self.time[id] or 0
