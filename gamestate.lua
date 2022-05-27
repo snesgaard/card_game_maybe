@@ -173,6 +173,8 @@ function epoch:react(step)
 
     local reaction_epoch = r(self, self:tail())
 
+    if not reaction_epoch then return self end
+
     self.timeline = self.timeline + reaction_epoch.timeline
 
     return self

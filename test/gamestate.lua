@@ -71,6 +71,10 @@ function transform.baz(gs)
     return gamestate.epoch(gs)
 end
 
+function transform.bee(gs)
+    return gamestate.epoch(gs)
+end
+
 T("epoch", function(T)
     local gs = gamestate.state()
 
@@ -95,6 +99,30 @@ T("epoch", function(T)
         T:assert(epoch.timeline:size() == 2)
         T:assert(epoch.tags[transform.bar])
         T:assert(epoch.tags[transform.baz])
+    end)
+
+    T("react", function(T)
+        local epoch = gamestate.epoch(gs)
+        epoch.reaction = {
+            [transform.foo] = function(epoch, gs)
+                return gamestate.epoch(gs):chain(transform.bee)
+            end
+        }
+
+        epoch = epoch:chain(transform.foo)
+
+        T:assert(epoch.timeline:size() == 4)
+
+        local order = {transform.foo, transform.bar, transform.baz, transform.bee}
+
+        for index, trns in ipairs(order) do
+            T:assert(epoch.timeline[index].transform == trns)
+        end
+
+        T:assert(epoch.tags[transform.foo])
+        T:assert(epoch.tags[transform.bar])
+        T:assert(epoch.tags[transform.baz])
+        T:assert(not epoch.tags[transform.bee])
     end)
 
 end)
