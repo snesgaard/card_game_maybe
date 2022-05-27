@@ -1,93 +1,79 @@
 local combat = {}
 
-function combat.thorns(epoch, gamestate, target, damage)
-    epoch(mechanics.damage, target, damage)
-end
-
-function combat.attack(epoch, gamestate, user, target, damage)
-    local str = gamestate:get(component.strength, user)
-    local def = gamestate:get(component.defense, target)
-
+function combat.attack(gamestate, attacker, defender, damage)
+    local str = gamestate:get(component.strength, attacker)
+    local def = gamestate:get(component.defense, defender)
     local actual_damage = math.max(0, damage + str - def)
 
-    epoch(combat.damage, target, damage)
+    local next_gamestate, damage_info = epoch(combat.damage, defender, damage)
 
-    local thorns = gamestate:get(component.thorns, target)
-    if thorns then epoch(combat.thorns, user, thorns) end
+    local info = {
+        attacker = attacker,
+        defender = defender
+        damage_info = damage_info
+    }
+
+    return epoch(next_gamestate, info)
+        :chain(combat.damage, target, damage)
+        :react(combat.thorns)
 end
 
-function combat.damage(epoch, gamestate, target, damage)
+function combat.damage(gamestate, target, damage)
     local health = gamestate:get(component.health, target)
-
-    if not health then return end
-
     local next_health = math.max(0, health - damage)
-    local real_damage = health - next_health
+    local actual_damage = health - next_health
 
-    local next_gamestate = gamestate
-        :set(component.health, target, next_health)
+    local next_gamestate = gamestate:set(component.health, target, next_health)
 
     local info = {
+        damage = actual_damage,
+        target = target
+    }
+
+    local epoch = epoch(next_gamestate, info)
+
+    if 0 < next_health then return epoch end
+
+    return epoch:chain(combat.kill, target)
+end
+
+function combat.kill(gamestate, target)
+    local next_gamestate = gamestate:set(component.dead, target, true)
+
+    local info = {target = target}
+
+    return epoch(next_gamestate, info)
+end
+
+function combat.thorns(gamestate, source, target)
+    local thorns = gamestate:get(component.thorns, target)
+
+    if not thorns then return end
+
+    local info = {
+        source = source,
         target = target,
-        damage = real_damage
+        thorns = thorns
     }
 
-    if next_health <= 0 then epoch(mechanics.die, target) end
-
-    return next_gamestate, info, transforms
+    return epoch(gamestate, info):chain(combat.damage, source, thorns)
 end
 
-function combat.die(epoch, gamestate, target)
-    local next_gamestate = gamestate
-        :set(component.dead, target, true)
+function combat.vampire(gamestate, user, damage)
+    local vampire = gamestate:get(component.vampire, user)
 
-    local info = {
-        target = target
-    }
+    if not vampire then return end
 
-    epoch(combat.remove_minion, taget)
-
-    return next_gamestate, info
+    return epoch(gamestate):chain(combat.heal, user, damage)
 end
 
-function combat.remove_minion(epoch, gamestate, target)
-    local type = next_gamestate:get(component.type, target)
-    local master = next_gamestate:get(component.master, target)
+reaction[combat.attack] = function(epoch, gamestate)
+    local attack_info = epoch[combat.attack]
+    local damage_info = epoch[combat.damage]
 
-    if type ~= "minion" or not master then return end
-
-    local formation = gamestate:ensure(component.formation, master)
-
-    local function is_not_target(id) return id ~= target end
-
-    local next_gamestate = gamestate
-        :set(component.formation, master, formation:filter(is_not_target))
-
-    local info = {
-        target = target
-    }
-
-    return next_gamestate, info
-end
-
-function combat.spawn_minion(epoch, gamestate, master, minion, position)
-    local formation = gamestate:ensure(component.formation, master)
-    local id = {}
-
-    local next_gamestate = gamestate
-        :instance(id, minion)
-        :set(component.master, master)
-        :set(component.type, "minion")
-        :set(component.base, minion)
-        :set(component.formation, master, formation:set(position, id))
-
-    local info = {
-        id = id,
-        minion = minion,
-        position = position
-    }
-
-    return next_gamestate, info
+    return epoch(gamestate)
+        :chain(combat.thorns, attack_info.user, attack_info.target)
+        :chain(combat.vampire, attack_info.user, damage_info.damage)
 end
 
 return combat

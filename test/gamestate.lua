@@ -57,36 +57,44 @@ T("gamestate", function(T)
     end)
 end)
 
-local component = {}
+local transform = {}
 
-function component.health(hp) return hp or 0 end
+function transform.foo(gs)
+    return gamestate.epoch(gs):chain(transform.bar)
+end
 
-local transforms = {}
+function transform.bar(gs)
+    return gamestate.epoch(gs):chain(transform.baz)
+end
 
-function transforms.heal(epoch, gs, target, heal)
-    if heal <= 0 then return end
-
-    local next_gs = gs
-        :map(component.health, target, function(hp) return hp + heal end)
-
-    epoch(transforms.heal, target, heal - 1)
+function transform.baz(gs)
+    return gamestate.epoch(gs)
 end
 
 T("epoch", function(T)
-    local data = {
-        [ids.player] = {
-            [component.health] = {10}
-        },
-        [ids.other] = {
-            [component.health] = {5}
-        }
-    }
+    local gs = gamestate.state()
 
-    local gs = gamestate.state():populate(data)
+    T("foo", function(T)
+        local epoch = gamestate.epoch(gs):chain(transform.foo)
 
-    local epoch = gamestate.epoch(gs)
+        T:assert(epoch.timeline:size() == 3)
+        T:assert(epoch.tags[transform.foo])
+        T:assert(epoch.tags[transform.bar])
+        T:assert(epoch.tags[transform.baz])
 
-     T("heal", function(T)
-         epoch(transforms.heal, target, 3)
-     end)
+        local order = {transform.foo, transform.bar, transform.baz}
+
+        for index, trans in ipairs(order) do
+            T:assert(epoch.timeline[index].transform == trans)
+        end
+    end)
+
+    T("bar", function(T)
+        local epoch = gamestate.epoch(gs):chain(transform.bar)
+
+        T:assert(epoch.timeline:size() == 2)
+        T:assert(epoch.tags[transform.bar])
+        T:assert(epoch.tags[transform.baz])
+    end)
+
 end)

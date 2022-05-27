@@ -121,83 +121,67 @@ end
 local epoch = {}
 epoch.__index = epoch
 
-function epoch.create(gamestate)
+function epoch.create(gamestate, info, timeline)
     return setmetatable(
         {
-            initial_gamestate = gamestate,
-            spinning = false,
-            transforms = list(),
-            steps = list()
+            gamestate = gamestate,
+            info = info or {},
+            timeline = timeline or list(),
+            tags = {}
         },
         epoch
     )
 end
 
-function epoch:invoke(transform, ...)
-    local gamestate = self:tail()
-    local next_gamestate, info = transform(self, gamestate, ...)
-
-    local step = {
-        gamestate = next_gamestate or gamestate,
-        info = info,
-        transform = transform,
-        args = {...}
-    }
-
-    table.insert(self.steps, step)
-
-    local react = self:fetch_reaction(transform)
-
-    if react then return react(self, step.gamestate, step) end
+function epoch:set(tag, info)
+    self.tags[tag] = info
+    return self
 end
 
-function epoch:fetch_reaction(transform)
-    local reaction = self.reaction or {}
-    return reaction[transform]
+function epoch:get(tag)
+    return self.tags[tag]
+end
+
+function epoch:chain(step_func, ...)
+    local next_epoch = step_func(self:tail(), ...)
+
+    if not next_epoch then return self end
+
+    local step = {
+        transform = step_func,
+        args = {...},
+        info = next_epoch.info,
+        gamestate = next_epoch.gamestate,
+        epoch = self
+    }
+
+    self:set(step_func, next_epoch.info)
+
+    for tag, info in pairs(next_epoch.tags) do
+        self:set(tag, info)
+    end
+
+    self.timeline = self.timeline + list(step) + next_epoch.timeline
+
+    return self:react(step)
+end
+
+function epoch:react(step)
+    if not self.reaction then return self end
+    local r = self.reaction[step.transform]
+    if not r then return self end
+
+    local reaction_epoch = r(self, self:tail())
+
+    self.timeline = self.timeline + reaction_epoch.timeline
+
+    return self
 end
 
 function epoch:tail()
-    local t = self.steps:tail()
-    return t and t.gamestate or self.initial_gamestate
+    local t = self.timeline:tail()
+    return t and t.gamestate or self.gamestate
 end
 
-function epoch:pop()
-    local t = self.transforms
-    if not t:empty() then self.transforms = list() end
-    return t
-end
-
-function epoch:spin()
-    if self.spinning then return end
-
-    self.spinning = true
-
-    local transforms = self:pop()
-
-    while not transforms:empty() do
-        local t = transforms:head()
-        table.remove(transforms, 1)
-
-        self:invoke(unpack(t))
-
-        local next_transforms = self:pop()
-        if self.breath_first then
-            transforms = transforms + next_transforms
-        else
-            transforms = next_transforms + transforms
-        end
-    end
-
-    self.spinning = false
-end
-
-function epoch:push(...)
-    table.insert(self.transforms, {...})
-end
-
-function epoch:__call(...)
-    self:push(...)
-    self:spin()
-end
 
 return {state=gamestate.create, epoch=epoch.create}
