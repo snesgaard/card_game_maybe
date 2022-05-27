@@ -110,72 +110,86 @@ function gamestate:intersection(...)
     return entity_list
 end
 
-local history = {}
-history.__index = history
+local epoch = {}
+epoch.__index = epoch
 
-function history.create(initial_gamestate)
+function epoch.create(gamestate)
     return setmetatable(
         {
-            initial_gamestate = initial_gamestate or gamestate.create(),
+            initial_gamestate = gamestate
+            spinning = false,
+            transforms = list(),
             steps = list()
         },
-        history
+        epoch
     )
 end
 
-function history:set_react(react)
-    self.react = react
-    return self
-end
-
-function history:tail()
-    return #self.steps > 0 and self.steps:tail().gamestate or self.initial_gamestate
-end
-
-local function format_args_for_advance(first, second, ...)
-    if type(first) == "function" then
-        return first, {second, ...}
-    else
-        return second, {...}, first
-    end
-end
-
-local function fetch_action(react, step)
-    if not react then return end
-
-    if type(react) == "function" then
-        return react
-    elseif type(react) == "table" then
-        return react[step.func]
-    else
-        errorf("Unsupported type %s", type(react))
-    end
-end
-
-function history:advance(...)
-    local func, args, tag = format_args_for_advance(...)
-
-    local next_gs, info = func(self:tail(), unpack(args))
+function epoch:invoke(transform, ...)
+    local gamestate = self:tail()
+    local next_gamestate, info = transform(self, gamestate, ..)
 
     local step = {
-        gamestate = next_gs or self:tail(),
-        func = func,
-        args = args,
-        info = info or {},
-        tag = tag,
+        gamestate = next_gamestate or gamestate,
+        info = info,
+        transform = transform,
+        args = {...}
     }
+
     table.insert(self.steps, step)
 
-    local react = fetch_action(self.react, step)
+    local react = self:fetch_reaction(transform)
 
-    if not react then return self end
-
-    return self:map(react, step)
+    if react then return react(self, step.gamestate, step) end
 end
 
-function history:map(func, ...)
-    func(self, ...)
-    return self
+function epoch:fetch_reaction(transform)
+    local reaction = self.reaction or {}
+    return reaction[transform]
+end
+
+function epoch:tail()
+    local t = self.steps:tail()
+    return t and t.gamestate or self.initial_gamestate
+end
+
+function epoch:pop()
+    local t = self.transforms
+    if not t:empty() then self.transforms = list() end
+    return t
+end
+
+function epoch:spin()
+    if self.spinning then return end
+
+    self.spinning = true
+
+    local transforms = self:pop()
+
+    while not transforms:empty() do
+        local t = transforms:head()
+        table.remove(transforms, 1)
+
+        self:invoke(unpack(t))
+
+        local next_transforms = self:pop()
+        if self.breath_first then
+            transforms = transforms + next_transforms
+        else
+            transforms = next_transforms + transforms
+        end
+    end
+
+    self.spinning = false
+end
+
+function epoch:push(...)
+    table.insert(self.transforms, {...})
+end
+
+function epoch:__call(...)
+    self:push(...)
+    self:spin()
 end
 
 return {state=gamestate.create, history=history.create}
