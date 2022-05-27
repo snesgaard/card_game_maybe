@@ -46,6 +46,26 @@ function gamestate:ensure(component, id)
     return self:get(component, id) or component()
 end
 
+local function unpack_args(args)
+    if type(args) == "table" then
+        return unpack(args)
+    else
+        return args
+    end
+end
+
+function gamestate:populate(entities)
+    local state = self
+
+    for id, components in pairs(entities) do
+        for comp, args in pairs(components) do
+            state = state:set(comp, id, unpack_args(args))
+        end
+    end
+
+    return state
+end
+
 function gamestate:intersection(...)
     local components = {...}
     local entity_list = list()
@@ -97,7 +117,6 @@ function history.create(initial_gamestate)
     return setmetatable(
         {
             initial_gamestate = initial_gamestate or gamestate.create(),
-            step_stack = stack(),
             steps = list()
         },
         history
@@ -106,11 +125,6 @@ end
 
 function history:set_react(react)
     self.react = react
-    return self
-end
-
-function history:set_proact(proact)
-    self.proact = proact
     return self
 end
 
@@ -126,7 +140,7 @@ local function format_args_for_advance(first, second, ...)
     end
 end
 
-local function fetch_reaction(react, step)
+local function fetch_action(react, step)
     if not react then return end
 
     if type(react) == "function" then
@@ -149,34 +163,18 @@ function history:advance(...)
         args = args,
         info = info or {},
         tag = tag,
-        parent = self.step_stack:peek()
     }
     table.insert(self.steps, step)
 
-    local react = fetch_reaction(self.react, step)
+    local react = fetch_action(self.react, step)
 
     if not react then return self end
 
-    self.step_stack:push(step)
-    react(self, step)
-    self.step_stack:pop()
-    return self
+    return self:map(react, step)
 end
 
 function history:map(func, ...)
-    return func(self, ...) or self
-end
-
-function history:find(func, ...)
-    for i = #self.steps, 1, -1 do
-        local s = self.steps[i]
-        if func(s, ...) then return s end
-    end
-end
-
-function history:prune(max_size)
-    local size = #self.steps
-    self.steps = self.steps:sub(math.max(1, size - max_size), size)
+    func(self, ...)
     return self
 end
 
