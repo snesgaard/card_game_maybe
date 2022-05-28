@@ -1,5 +1,5 @@
 local nw = require "nodeworks"
-local constants = require "constants"
+local constants = require "game.constants"
 
 local read = {}
 
