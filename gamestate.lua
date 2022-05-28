@@ -46,6 +46,34 @@ function gamestate:ensure(component, id)
     return self:get(component, id) or component()
 end
 
+local function unpack_args(args)
+    if type(args) == "table" then
+        return unpack(args)
+    else
+        return args
+    end
+end
+
+function gamestate:instance(id, components)
+    local state = self
+
+    for comp, args in pairs(components) do
+        state = state:set(comp, id, unpack_args(args))
+    end
+
+    return state
+end
+
+function gamestate:populate(data)
+    local state = self
+
+    for id, components in pairs(data) do
+        state = state:instance(id, components)
+    end
+
+    return state
+end
+
 function gamestate:intersection(...)
     local components = {...}
     local entity_list = list()
