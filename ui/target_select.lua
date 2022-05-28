@@ -1,6 +1,5 @@
 local field_render = require "game.field_render"
 local ui_glob = require "ui"
-local im_animation = require "tween.im_animation"
 local render = require "render"
 local constants = require "game.constants"
 local component = require "component"
