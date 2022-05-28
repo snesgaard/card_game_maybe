@@ -62,7 +62,6 @@ local function id_gen(s)
     end
 end
 
-
 function combat.spawn_minion(gs, minion_card, master, spawn_point)
     local formation = gs:ensure(component.formation, constants.id.field)
     local prev_id = formation[spawn_point]

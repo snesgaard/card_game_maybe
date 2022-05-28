@@ -1,6 +1,6 @@
 local field_render = require "game.field_render"
 local ui = require "ui"
-local constants = require "constants"
+local constants = require "game.constants"
 
 local minion_spawn = {}
 

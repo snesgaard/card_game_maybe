@@ -39,44 +39,6 @@ local function initial_gamestate()
     return gamestate.state()
 end
 
-local function ui_layer(layer, self)
-    self.ui.actor_status:draw()
-    self.ui.card_select:draw()
-    self.ui.target_select:draw()
-end
-
-local function draw_if_exist(ui)
-    if not ui or not ui.draw then return end
-    ui:draw()
-end
-
-local function field_layer(layer, game)
-    field_render.draw(game)
-    draw_if_exist(game.ui.spawn_select)
-end
-
-local function initial_visualstate()
-    local vs = nw.ecs.entity()
-
-    vs:entity(layer_id.background)
-        :set(nw.component.layer_type, render.layer_type.color)
-        :set(nw.component.color, 0.5, 0.5, 0.5)
-
-    vs:entity(layer_id.ui)
-        :set(nw.component.layer_type, ui_layer)
-
-    vs:entity(layer_id.field)
-        :set(nw.component.layer_type, field_layer)
-
-    return vs
-end
-
-local function draw_visual_state(ctx)
-    for _, id in ipairs(layer_order) do
-        render.draw_layer(ctx.visualstate:entity(id), ctx)
-    end
-end
-
 local function handle_event_to_ui(ui, api_name, event_list)
     for _, event in ipairs(event_list) do
         if ui:action(api_name, unpack(event)) then
@@ -95,7 +57,6 @@ function game.create(ctx)
 
     local this = {
         gamestate = initial_gamestate(),
-        visualstate = initial_visualstate(),
         ui = {
             card_select = gui(ui.card_select_better),
             target_select = gui(ui.target_select.ui),
@@ -131,9 +92,14 @@ function game:step(...)
 end
 
 function game:draw()
-    for _, id in ipairs(layer_order) do
-        render.draw_layer(self.visualstate:entity(id), self)
-    end
+    local w, h = gfx.getWidth(), gfx.getHeight()
+    gfx.setColor(0.5, 0.5, 0.5)
+    gfx.rectangle("fill", 0, 0, w, h)
+    gfx.setColor(1, 1, 1)
+    field_render.draw(self)
+    self.ui.actor_status:draw()
+    self.ui.card_select:draw()
+    self.ui.target_select:draw()
 end
 
 function game:update(dt)
@@ -180,7 +146,7 @@ function game:pick_card_to_play()
 
     local cards = self.gamestate:get(component.hand, constants.id.player)
     local memory = self.ui.card_select.memory or list()
-    print(memory)
+
     local valid_memory = memory:filter(function(card)
         return cards:argfind(card)
     end)

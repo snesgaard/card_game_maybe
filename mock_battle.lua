@@ -1,5 +1,5 @@
 local nw = require "nodeworks"
-local game = require "game"
+local game = require "game.game"
 local mechanics = require "mechanics"
 local minion = require "minion"
 local cards = require "cards"
