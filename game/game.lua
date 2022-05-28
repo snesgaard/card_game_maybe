@@ -60,7 +60,8 @@ function game.create(ctx)
         ui = {
             card_select = gui(ui.card_select_better),
             target_select = gui(ui.target_select.ui),
-            actor_status = gui(ui.actor_status)
+            actor_status = gui(ui.actor_status),
+            actor_field = gui(ui.actor_in_field)
         },
         ctx = ctx
     }
@@ -96,18 +97,15 @@ function game:draw()
     gfx.setColor(0.5, 0.5, 0.5)
     gfx.rectangle("fill", 0, 0, w, h)
     gfx.setColor(1, 1, 1)
-    field_render.draw(self)
+    --field_render.draw(self)
+    self.ui.actor_field:draw()
     self.ui.actor_status:draw()
     self.ui.card_select:draw()
     self.ui.target_select:draw()
 end
 
 function game:update(dt)
-    for _, ui in pairs(self.ui) do
-        if ui.update then
-            ui:update(dt)
-        end
-    end
+    for _, ui in pairs(self.ui) do if ui.update then ui:update(dt) end end
 end
 
 function game:pick_card(count, strict)
@@ -125,7 +123,7 @@ function game:pick_card(count, strict)
 end
 
 function game:select_minion_spawn(user)
-    local indices = {-4, -3, -2, -1, 1, 2, 3, 4}
+    local indices = {-3, -2, -1}
     return ui.minion_spawn_select(self, indices)
 end
 
@@ -251,7 +249,7 @@ end
 function game:battle_loop()
     self:step(
         mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
-        constants.id.player, 1
+        constants.id.player, -1
     )
 
     while self.ctx.alive do

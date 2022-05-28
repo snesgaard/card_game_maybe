@@ -67,25 +67,4 @@ function field_render.draw(game)
     end
 end
 
-function field_render.draw_ui_actor(game, index, id)
-    local pos = field_render.actor_position(index)
-end
-
-function field_render.draw_ui(game)
-    local gs = game.gamestate
-    local vs = game.visualstate
-
-    local party_order = gs:get(component.party_order, constants.id.field)
-    local enemy_order = gs:get(component.enemy_order, constants.id.field)
-    local all_order = {}
-
-    for index, id in pairs(party_order) do
-        field_render.draw_ui_actor(game, -index, id)
-    end
-
-    for index, id in pairs(enemy_order) do
-        field_render.draw_ui_actor(game, index, id)
-    end
-end
-
 return field_render

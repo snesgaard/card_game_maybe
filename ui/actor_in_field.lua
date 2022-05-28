@@ -1,3 +1,7 @@
+local component = require "component"
+local constants = require "game.constants"
+local field_render = require "game.field_render"
+
 local actor_in_field = {}
 
 function actor_in_field.actor_position(index)
@@ -28,22 +32,39 @@ function actor_in_field.set_types(ctx, state, types)
 end
 
 function actor_in_field.step(ctx, state, gamestate)
-    local formation = gamestate:get(component.formation, constants.id.field)
+    local formation = gamestate:ensure(component.formation, constants.id.field)
     local animation = dict()
+    local master = dict()
 
     for _, id in pairs(formation) do
         local t = gamestate:get(component.type, id) or dict()
         animation[id] = t.sprite or dict()
+        master[id] = gamestate:get(component.master, id)
     end
 
     return state
         :set("formation", formation)
-        :set("animation", types)
+        :set("animation", animation)
+        :set("master", master)
 end
 
 function actor_in_field.draw(ctx, state)
     local formation = state.formation
     local animation = state.animation or {}
+    local master = state.master or {}
+
+    for index, id in pairs(formation) do
+        local pos = field_render.actor_position(index)
+        local anime = (animation[id] or {}).idle
+        local s = master[id] == constants.id.player and 1 or -1
+
+        local pos = ctx:tween("position"):ensure(id, pos)
+        local frame = ctx:animation():ensure(id, anime)
+
+        frame:draw(
+            "body", pos.x, pos.y, 0, s * constants.scale, constants.scale
+        )
+    end
 end
 
 return actor_in_field
