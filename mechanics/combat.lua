@@ -1,5 +1,6 @@
 local component = require "component"
 local constants = require "game.constants"
+local gamestate = require "gamestate"
 
 local combat = {}
 
@@ -87,6 +88,22 @@ function combat.spawn_minion(gs, minion_card, master, spawn_point)
     }
 
     return next_gs, info
+end
+
+function combat.intialize_battle(gs, player_master, enemy_master)
+    local next_gs = gamestate.state()
+
+    local player_data = {
+        [component.health] = {player_master.health},
+        [component.max_health] = {player_master.health},
+        [component.draw] = {player_master.deck:map(instance):shuffle()},
+        [component.name] = {player_master.name},
+        [component.type] = {player_master},
+    }
+
+    local next_gs = next_gs:instance(constants.id.player, player_data)
+
+    return next_gs
 end
 
 return combat

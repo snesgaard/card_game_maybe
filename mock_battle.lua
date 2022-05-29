@@ -5,6 +5,7 @@ local minion = require "minion"
 local cards = require "cards"
 local component = require "component"
 local constants = require "game.constants"
+local masters = require "game.masters"
 
 return function(ctx)
     ctx.game = game(ctx)
@@ -21,9 +22,6 @@ return function(ctx)
             + List.duplicate(cards.minions.fireskull, 5),
     }
 
-    print(player.deck:map(function(c) return c.title end))
-
-    ctx.game:setup_battle(player)
-    print(ctx.game.gamestate:get(component.hand, constants.id.player):map(function(c) return c.title end))
+    ctx.game:setup_battle(masters.gravedigger)
     ctx.game:battle_loop()
 end

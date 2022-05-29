@@ -36,7 +36,9 @@ function actor_in_field.step(ctx, state, gamestate)
     local animation = dict()
     local master = dict()
 
-    for _, id in pairs(formation) do
+    local entities = list(constants.id.player, constants.id.enemy) + formation:values()
+
+    for _, id in ipairs(entities) do
         local t = gamestate:get(component.type, id) or dict()
         animation[id] = t.sprite or dict()
         master[id] = gamestate:get(component.master, id)
@@ -65,6 +67,10 @@ function actor_in_field.draw(ctx, state)
             "body", pos.x, pos.y, 0, s * constants.scale, constants.scale
         )
     end
+
+    local pos = field_render.actor_position(-constants.max_positions - 1)
+    local frame = get_atlas("art/characters"):get_frame("chibdigger")
+    frame:draw("body", pos.x, pos.y, 0, constants.scale)
 end
 
 return actor_in_field

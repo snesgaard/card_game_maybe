@@ -19,7 +19,8 @@ local text_opt = {
     valign = "center"
 }
 
-local frame = get_atlas("art/characters"):get_frame("status_bar")
+local frame = get_atlas("art/characters"):get_frame("status_bar/attack_health")
+local master_frame = get_atlas("art/characters"):get_frame("status_bar/master")
 
 
 local function draw_health_bar(ctx, id, bar, health, max_health)
@@ -73,9 +74,32 @@ local function draw_status_bar(ctx, gs, index, id)
     draw_attack(attack, frame.slices.attack)
     draw_health_text(health, max_health, frame.slices.healthtext)
 
+    gfx.pop()
+end
 
+local function draw_master_bar(ctx, gs, index, id)
+    local pos = field_render.actor_position(index)
+    local health = gs:get(component.health, id)
+    local max_health = gs:get(component.max_health, id)
+    local attack = gs:get(component.attack, id)
 
+    if not health or not max_health then return end
 
+    local anchor = master_frame.slices.anchor or spatial()
+    local center = -anchor:center()
+
+    gfx.push()
+    gfx.translate(pos.x, pos.y)
+    gfx.setColor(1, 1, 1)
+    --gfx.circle("fill", 0, 0, 5)
+    gfx.scale(constants.scale)
+    gfx.translate(center:unpack())
+
+    local healthbar_slice = master_frame.slices.healthbar
+    draw_health_bar(ctx, id, healthbar_slice, health, max_health)
+    gfx.setColor(1, 1, 1)
+    master_frame:draw(0, 0)
+    draw_health_text(health, max_health, master_frame.slices.healthtext)
 
     gfx.pop()
 end
@@ -90,6 +114,8 @@ function actor_status.draw(ctx, state)
     for index, id in pairs(formation) do
         draw_status_bar(ctx, gs, index, id)
     end
+
+    draw_master_bar(ctx, gs, -constants.max_positions - 1, constants.id.player)
 end
 
 return actor_status

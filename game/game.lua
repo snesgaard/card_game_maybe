@@ -236,10 +236,12 @@ end
 function game:setup_battle(player, enemy)
     self.gamestate = gamestate.state()
 
+    self:step(mechanics.combat.intialize_battle, player)
+
     local deck = player.deck or list()
     local draw = deck:map(instance):shuffle()
 
-    self.gamestate = self.gamestate:set(component.draw, constants.id.player, draw)
+    --self.gamestate = self.gamestate:set(component.draw, constants.id.player, draw)
 
     for i = 1, constants.initial_draw do
         self:step(mechanics.card.draw, constants.id.player)
@@ -249,7 +251,7 @@ end
 function game:battle_loop()
     self:step(
         mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
-        constants.id.player, -1
+        constants.id.enemy, 1
     )
 
     while self.ctx.alive do

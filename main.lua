@@ -11,11 +11,12 @@ function instance(c)
     return setmetatable({}, c)
 end
 
+love.graphics.setDefaultFilter("nearest", "nearest")
+
 local nw = require "nodeworks"
 local mock_battle = require "mock_battle"
 
 function love.load()
-    gfx.setDefaultFilter("nearest", "nearest")
     world = nw.ecs.world()
     world:push(mock_battle)
 end

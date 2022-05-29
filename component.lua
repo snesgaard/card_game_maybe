@@ -34,4 +34,6 @@ function component.master(m) return m end
 
 function component.attack(a) return a or 0 end
 
+function component.name(name) return name or "not-known-name" end
+
 return component

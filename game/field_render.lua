@@ -7,12 +7,18 @@ function field_render.actor_position(index)
     local w, h = gfx.getWidth(), gfx.getHeight()
 
     local pos = vec2(w / 2, h / 2)
-    local base_offset = 75
-    local offset = 200
+    local base_offset = 150
+    local offset = 210
     if index < 0 then
         pos.x = pos.x - base_offset
     elseif index > 0 then
         pos.x = pos.x + base_offset
+    end
+
+    if index > 0 then
+        index = index - 1
+    elseif index < 0 then
+        index = index + 1
     end
 
     pos.x = pos.x + offset * index
