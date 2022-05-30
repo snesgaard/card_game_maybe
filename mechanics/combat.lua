@@ -99,9 +99,20 @@ function combat.intialize_battle(gs, player_master, enemy_master)
         [component.draw] = {player_master.deck:map(instance):shuffle()},
         [component.name] = {player_master.name},
         [component.type] = {player_master},
+        [component.master] = {constants.id.player}
     }
 
-    local next_gs = next_gs:instance(constants.id.player, player_data)
+    local enemy_data = {
+        [component.health] = {enemy_master.health},
+        [component.max_health] = {enemy_master.health},
+        [component.draw] = {enemy_master.deck:map(instance):shuffle()},
+        [component.name] = {enemy_master.name},
+        [component.type] = {enemy_master},
+    }
+
+    local next_gs = next_gs
+        :instance(constants.id.player, player_data)
+        :instance(constants.id.enemy, enemy_data)
 
     return next_gs
 end

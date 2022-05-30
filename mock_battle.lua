@@ -22,6 +22,6 @@ return function(ctx)
             + List.duplicate(cards.minions.fireskull, 5),
     }
 
-    ctx.game:setup_battle(masters.gravedigger)
+    ctx.game:setup_battle(masters.gravedigger, masters.box)
     ctx.game:battle_loop()
 end

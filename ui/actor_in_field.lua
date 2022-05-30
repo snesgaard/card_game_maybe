@@ -50,27 +50,43 @@ function actor_in_field.step(ctx, state, gamestate)
         :set("master", master)
 end
 
+local function draw_actor(ctx, state, index, id)
+    local formation = state.formation
+    local animation = state.animation or {}
+    local master = state.master or {}
+
+    local pos = field_render.actor_position(index)
+    local anime = (animation[id] or {}).idle
+    local s = master[id] == constants.id.player and 1 or -1
+
+    local pos = ctx:tween("position"):ensure(id, pos)
+    local frame = ctx:animation():ensure(id, anime)
+
+    gfx.setColor(1, 1, 1)
+    if frame then
+        frame:draw(
+            "body", pos.x, pos.y, 0, s * constants.scale, constants.scale
+        )
+    else
+        gfx.push()
+        gfx.translate(pos.x, pos.y)
+        local w, h = 100, 200
+        gfx.rectangle("fill", -w / 2, -h, w, h)
+        gfx.pop()
+    end
+end
+
 function actor_in_field.draw(ctx, state)
     local formation = state.formation
     local animation = state.animation or {}
     local master = state.master or {}
 
     for index, id in pairs(formation) do
-        local pos = field_render.actor_position(index)
-        local anime = (animation[id] or {}).idle
-        local s = master[id] == constants.id.player and 1 or -1
-
-        local pos = ctx:tween("position"):ensure(id, pos)
-        local frame = ctx:animation():ensure(id, anime)
-
-        frame:draw(
-            "body", pos.x, pos.y, 0, s * constants.scale, constants.scale
-        )
+        draw_actor(ctx, state, index, id)
     end
 
-    local pos = field_render.actor_position(-constants.max_positions - 1)
-    local frame = get_atlas("art/characters"):get_frame("chibdigger")
-    frame:draw("body", pos.x, pos.y, 0, constants.scale)
+    draw_actor(ctx, state, -constants.max_positions - 1, constants.id.player)
+    draw_actor(ctx, state, constants.max_positions + 1, constants.id.enemy)
 end
 
 return actor_in_field

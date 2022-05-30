@@ -19,4 +19,10 @@ masters.gravedigger = {
     }
 }
 
+masters.box = {
+    name = "Box",
+    health = 20,
+    deck = list(),
+}
+
 return masters

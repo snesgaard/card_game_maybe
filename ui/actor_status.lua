@@ -116,6 +116,7 @@ function actor_status.draw(ctx, state)
     end
 
     draw_master_bar(ctx, gs, -constants.max_positions - 1, constants.id.player)
+    draw_master_bar(ctx, gs, constants.max_positions + 1, constants.id.enemy)
 end
 
 return actor_status

@@ -236,7 +236,7 @@ end
 function game:setup_battle(player, enemy)
     self.gamestate = gamestate.state()
 
-    self:step(mechanics.combat.intialize_battle, player)
+    self:step(mechanics.combat.intialize_battle, player, enemy)
 
     local deck = player.deck or list()
     local draw = deck:map(instance):shuffle()
