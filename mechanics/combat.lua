@@ -82,9 +82,10 @@ function combat.spawn_minion(gs, minion_card, master, spawn_point)
         )
 
     local info = {
-        type = minion,
+        type = minion_card,
         master = master,
-        id = id
+        id = id,
+        index = spawn_point
     }
 
     return next_gs, info
@@ -108,6 +109,7 @@ function combat.intialize_battle(gs, player_master, enemy_master)
         [component.draw] = {enemy_master.deck:map(instance):shuffle()},
         [component.name] = {enemy_master.name},
         [component.type] = {enemy_master},
+        [component.master] = {constants.id.enemy}
     }
 
     local next_gs = next_gs

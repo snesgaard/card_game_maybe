@@ -34,6 +34,17 @@ function field_render.enemy_position(index)
     return field_render.actor_position(index)
 end
 
+function field_render.compute_all_actor_indices(gamestate)
+    local formation = gamestate:get(component.formation, constants.id.field)
+    local actor_index = {}
+
+    for id, index in pairs(formation) do
+        actor_index[id] = index
+    end
+
+    return actor_index
+end
+
 function field_render.compute_all_actor_position(gamestate)
     local formation = gamestate:get(component.formation, constants.id.field)
 

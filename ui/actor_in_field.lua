@@ -1,6 +1,7 @@
 local component = require "component"
 local constants = require "game.constants"
 local field_render = require "game.field_render"
+local mechanics = require "mechanics"
 
 local actor_in_field = {}
 
@@ -29,6 +30,11 @@ end
 
 function actor_in_field.set_types(ctx, state, types)
     return state:set("animation", types)
+end
+
+actor_in_field[mechanics.combat.spawn_minion] = function(ctx, state, gamestate, step)
+    local pos = field_render.actor_position(step.info.index)
+    ctx:tween("position"):warp_to(step.info.id, pos)
 end
 
 function actor_in_field.step(ctx, state, gamestate)
@@ -87,6 +93,26 @@ function actor_in_field.draw(ctx, state)
 
     draw_actor(ctx, state, -constants.max_positions - 1, constants.id.player)
     draw_actor(ctx, state, constants.max_positions + 1, constants.id.enemy)
+end
+
+function actor_in_field.reset_position(ctx, state, id)
+    if not state.formation then return end
+
+    local index = state.formation:find(id)
+    if not index then return end
+    ctx:tween("position"):move_to(id, field_render.actor_position(index))
+end
+
+function actor_in_field.animate_attack(ctx, state, id)
+    if not state.formation then return end
+
+    local index = state.formation:find(id)
+    if not index then return end
+    local pos = field_render.actor_position(index)
+    local attack_offset = index < 0 and vec2(50, 0) or vec2(-50, 0)
+    ctx:tween("position"):move_to(id, attack_offset + pos)
+
+    return state, function() return ctx:tween("position"):done(id) end
 end
 
 return actor_in_field

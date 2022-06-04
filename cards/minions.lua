@@ -6,7 +6,7 @@ local minions = {}
 
 minions.fireskull = card.minion{
     title = "Fire Skull",
-    attack = 6,
+    attack = 1,
     health = 3,
     image = atlas:get_frame("fireskull"),
     sprite = {

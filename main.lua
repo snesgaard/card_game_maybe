@@ -15,6 +15,7 @@ love.graphics.setDefaultFilter("nearest", "nearest")
 
 local nw = require "nodeworks"
 local mock_battle = require "mock_battle"
+local particle_scene = require "particle_scene"
 
 function love.load()
     world = nw.ecs.world()
@@ -44,4 +45,8 @@ end
 function love.draw()
     world:emit("draw"):spin()
     world:emit("draw:ui"):spin()
+end
+
+function love.log(...)
+    world:emit("log", ...)
 end

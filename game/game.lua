@@ -61,7 +61,8 @@ function game.create(ctx)
             card_select = gui(ui.card_select_better),
             target_select = gui(ui.target_select.ui),
             actor_status = gui(ui.actor_status),
-            actor_field = gui(ui.actor_in_field)
+            actor_field = gui(ui.actor_in_field),
+            actor_particles = gui(ui.actor_particles)
         },
         ctx = ctx
     }
@@ -97,11 +98,11 @@ function game:draw()
     gfx.setColor(0.5, 0.5, 0.5)
     gfx.rectangle("fill", 0, 0, w, h)
     gfx.setColor(1, 1, 1)
-    --field_render.draw(self)
     self.ui.actor_field:draw()
     self.ui.actor_status:draw()
-    self.ui.card_select:draw()
+    self.ui.actor_particles:draw()
     self.ui.target_select:draw()
+    self.ui.card_select:draw()
 end
 
 function game:update(dt)
@@ -233,6 +234,59 @@ function game:play_card(card)
     end
 end
 
+function game:minion_phase(player_turn)
+    local formation = self.gamestate:get(component.formation, constants.id.field)
+
+    local player_side = list()
+    local enemy_side = list()
+
+    for i = 1, constants.max_positions do
+        table.insert(player_side, formation[-i])
+        table.insert(enemy_side, formation[i])
+    end
+
+    local attackers = player_turn and player_side or enemy_side
+    local defenders = player_turn and enemy_side or player_side
+
+    local function is_alive(id)
+        return self.gamestate:ensure(component.health, id) > 0
+    end
+
+    local attackers = attackers:filter(is_alive)
+
+    table.insert(defenders, player_turn and constants.id.enemy or constants.id.player)
+
+    for _, id in ipairs(attackers) do
+        local defenders = defenders:filter(is_alive)
+        local target = defenders:head()
+        if target then
+            local promise = self.ui.actor_field("animate_attack", id)
+            self:wait_until(promise)
+
+            local attack = self.gamestate:ensure(component.attack, id)
+            self:step(mechanics.combat.damage, id, target, attack)
+            self.ui.actor_particles("impact", target)
+
+            self.ui.actor_field("reset_position", id)
+            self:wait(0.5)
+        end
+    end
+end
+
+function game:wait(time)
+    local state = {time=time}
+    local update = self.ctx:listen("update")
+        :foreach(function(dt)
+            state.time = state.time - dt
+        end)
+
+    while state.time > 0 do self.ctx:yield() end
+end
+
+function game:wait_until(condition)
+    while not condition() do self.ctx:yield() end
+end
+
 function game:setup_battle(player, enemy)
     self.gamestate = gamestate.state()
 
@@ -253,6 +307,17 @@ function game:battle_loop()
         mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
         constants.id.enemy, 1
     )
+    self:step(
+        mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
+        constants.id.player, -1
+    )
+    self:step(
+        mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
+        constants.id.player, -2
+    )
+
+    self:minion_phase(true)
+    self:minion_phase(false)
 
     while self.ctx.alive do
         local card = self:pick_card_to_play()
