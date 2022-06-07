@@ -6,7 +6,7 @@ local player_action_pick = class()
 
 function player_action_pick.create(ctx)
     local this = {
-        state = {cursor = nil, focus = true},
+        state = {cursor = nil, focus = true, memory = {}},
         ui = {
             cards = gui(ui.card_select_better)
         },
@@ -17,6 +17,14 @@ function player_action_pick.create(ctx)
     local obs = this.observable
     obs.cards = ctx:listen("step")
         :map(function(gs) return gs:ensure(component.hand, constants.id.player) end)
+        :latest()
+
+    obs.memory = obs.cards
+        :map(function(cards)
+            for _, mem in ipairs(this.state.memory) do
+                if cards:argfind(mem) then return mem end
+            end
+        end)
 
     obs.keymap = obs.cards
         :map(function(cards)
@@ -38,10 +46,10 @@ function player_action_pick.create(ctx)
         end)
         :map(function() return end)
 
-    obs.cursor = obs.key_cursor:merge(obs.keymap_reset_cursor)
+    obs.cursor = obs.key_cursor:merge(obs.keymap_reset_cursor, obs.memory)
         :foreach(function(next_cursor)
             this.state.cursor = next_cursor
-            if next_cursor then
+            if next_cursor and this.state.focus then
                 this.ui.cards("set_revealed", {[next_cursor] = true})
             else
                 this.ui.cards("set_revealed", {})
@@ -63,8 +71,22 @@ function player_action_pick:update(dt)
     for _, ui in pairs(self.ui) do ui:update(dt) end
 end
 
+function player_action_pick:focus(value)
+    self.state.focus = value
+    self.observable.cursor:emit{self.state.cursor}
+end
+
 function player_action_pick:pick_card()
-    self.state.focus = true
+    --self.state.focus = true
+    self.state.cursor = nil
+
+    local cards = self.observable.cards:peek()
+    for _, mem in ipairs(self.state.memory or list()) do
+        if cards:argfind(mem) then
+            self.observable.cursor:emit{mem}
+            break
+        end
+    end
 
     local confirm = self.ctx:listen("keypressed")
         :map(function(key) return key == "space" and self.state.cursor end)
@@ -72,7 +94,10 @@ function player_action_pick:pick_card()
 
     while not confirm:peek() do self.ctx:yield() end
 
-    self.state.memory = self.state.cursor
+    local keymap = self.observable.keymap:peek()
+
+    local c = self.state.cursor
+    self.state.memory = list(c, keymap.left[c], keymap.right[c])
 
     return self.state.cursor
 end

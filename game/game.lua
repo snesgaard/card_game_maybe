@@ -183,6 +183,7 @@ function game:pick_card_to_play()
 end
 
 function game:pick_card_to_play()
+    self.ui.action_pick:focus(true)
     return self.ui.action_pick:pick_card()
 end
 
@@ -214,6 +215,7 @@ end
 
 function game:play_card(card)
     local gs_before_play = self.gamestate
+    self.ui.action_pick:focus(false)
 
     self:step(mechanics.card.begin_card_play, constants.id.player, card)
 
@@ -228,6 +230,8 @@ function game:play_card(card)
     else
         self:step(mechanics.combat.overwrite, gs_before_play)
     end
+
+    self.ui.action_pick:focus(true)
 end
 
 function game:minion_phase(player_turn)
@@ -262,7 +266,6 @@ function game:minion_phase(player_turn)
             local attack = self.gamestate:ensure(component.attack, id)
             self:step(mechanics.combat.damage, id, target, attack)
             self.ui.actor_particles("impact", target)
-
             self.ui.actor_field("reset_position", id)
             self:wait(0.5)
         end
@@ -325,6 +328,7 @@ function game:battle_loop()
     while self.ctx.alive do
         local card = self:pick_card_to_play()
         self:play_card(card)
+        self:minion_phase(true)
     end
 end
 

@@ -66,6 +66,9 @@ function actor_particles.impact(ctx, state, id)
 
     local actor_position = field_render.compute_all_actor_position(state.gamestate)
     local pos = actor_position[id]
+
+    if not pos then return end
+
     local master = state.gamestate:get(component.master, id)
 
     local args = dict(args)
