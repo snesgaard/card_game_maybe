@@ -63,7 +63,6 @@ function game.create(ctx)
             actor_status = gui(ui.actor_status),
             actor_field = gui(ui.actor_in_field),
             actor_particles = gui(ui.actor_particles),
-            action_pick = ui.player_action_pick(ctx)
         },
         ctx = ctx
     }
@@ -108,8 +107,7 @@ function game:draw()
     self.ui.actor_status:draw()
     self.ui.actor_particles:draw()
     self.ui.target_select:draw()
-    --self.ui.card_select:draw()
-    self.ui.action_pick:draw()
+    self.ui.card_select:draw()
 end
 
 function game:update(dt)
@@ -182,11 +180,6 @@ function game:pick_card_to_play()
     return state.cursor
 end
 
-function game:pick_card_to_play()
-    self.ui.action_pick:focus(true)
-    return self.ui.action_pick:pick_card()
-end
-
 function game:select_target(filter)
     return ui.target_select.interaction_with_gamestate(self, self.ui.target_select, filter)
 end
@@ -215,7 +208,6 @@ end
 
 function game:play_card(card)
     local gs_before_play = self.gamestate
-    self.ui.action_pick:focus(false)
 
     self:step(mechanics.card.begin_card_play, constants.id.player, card)
 
@@ -230,8 +222,6 @@ function game:play_card(card)
     else
         self:step(mechanics.combat.overwrite, gs_before_play)
     end
-
-    self.ui.action_pick:focus(true)
 end
 
 function game:minion_phase(player_turn)
@@ -317,10 +307,12 @@ function game:battle_loop()
         mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
         constants.id.player, -1
     )
-    self:step(
+    local info = self:step(
         mechanics.combat.spawn_minion, instance(cards.minions.fireskull),
         constants.id.player, -2
     )
+
+    self.ui.actor_field("set_highlight", {[info.id] = true})
 
     --self:minion_phase(true)
     --self:minion_phase(false)

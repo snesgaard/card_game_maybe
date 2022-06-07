@@ -56,10 +56,15 @@ function actor_in_field.step(ctx, state, gamestate)
         :set("master", master)
 end
 
+function actor_in_field.set_highlight(ctx, state, highlight)
+    return state:set("highlight", highlight)
+end
+
 local function draw_actor(ctx, state, index, id)
     local formation = state.formation
     local animation = state.animation or {}
     local master = state.master or {}
+    local highlight = state.highlight or {}
 
     local pos = field_render.actor_position(index)
     local anime = (animation[id] or {}).idle
@@ -79,6 +84,12 @@ local function draw_actor(ctx, state, index, id)
         local w, h = 100, 200
         gfx.rectangle("fill", -w / 2, -h, w, h)
         gfx.pop()
+    end
+
+    if highlight[id] then
+        gfx.setColor(1, 1, 1)
+        local box = field_render.actor_box(index)
+        gfx.rectangle("line", box:unpack())
     end
 end
 

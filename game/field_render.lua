@@ -26,6 +26,13 @@ function field_render.actor_position(index)
     return pos
 end
 
+function field_render.actor_box(index, w, h)
+    local pos = field_render.actor_position(index)
+    w = w or 150
+    h = h or 250
+    return spatial(pos.x - w / 2, pos.y - h, w, h)
+end
+
 function field_render.party_position(index)
     return field_render.actor_position(-index)
 end
