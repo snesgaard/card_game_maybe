@@ -62,7 +62,8 @@ function game.create(ctx)
             target_select = gui(ui.target_select.ui),
             actor_status = gui(ui.actor_status),
             actor_field = gui(ui.actor_in_field),
-            actor_particles = gui(ui.actor_particles)
+            actor_particles = gui(ui.actor_particles),
+            action_pick = ui.player_action_pick(ctx)
         },
         ctx = ctx
     }
@@ -71,56 +72,48 @@ function game.create(ctx)
         if ui.gamestate_step then ui:gamestate_step(this.gamestate) end
     end
 
+
+
     return setmetatable(this, game)
 end
 
-function game:step(...)
-    local hist = gamestate.history(self.gamestate):advance(...)
+function game:step(func, ...)
+    local next_gs, info = func(self.gamestate, ...)
 
-    for _, step in ipairs(hist.steps) do
-        self.gamestate = step.gamestate
+    local step = {
+        gamestate = next_gs or self:tail(),
+        func = func,
+        args = args,
+        info = info or {},
+    }
 
-        --for _, ui in pairs(self.ui) do
-        --    ui:action(step.func, step.gamestate, step)
-        --end
+    self.gamestate = step.gamestate
 
-        for _, ui in pairs(self.ui) do
-            ui:action(step.func, step.gamestate, step)
-            ui:action("step", step.gamestate, step)
-        end
+    for _, ui in pairs(self.ui) do
+        ui(step.func, step.gamestate, step)
+        self.ctx:emit(step.func, step.gamestate, step)
+        ui("step", step.gamestate, step)
+        self.ctx:emit("step", step.gamestate, step)
     end
 
-    return hist
+    return info
 end
 
 function game:draw()
     local w, h = gfx.getWidth(), gfx.getHeight()
-    gfx.setColor(0.5, 0.5, 0.5)
+    gfx.setColor(0.5, 0.5, 0.5, 0.5)
     gfx.rectangle("fill", 0, 0, w, h)
     gfx.setColor(1, 1, 1)
     self.ui.actor_field:draw()
     self.ui.actor_status:draw()
     self.ui.actor_particles:draw()
     self.ui.target_select:draw()
-    self.ui.card_select:draw()
+    --self.ui.card_select:draw()
+    self.ui.action_pick:draw()
 end
 
 function game:update(dt)
     for _, ui in pairs(self.ui) do if ui.update then ui:update(dt) end end
-end
-
-function game:pick_card(count, strict)
-    local keypressed = self.ctx:listen("keypressed"):collect()
-    local ui = self.ui.card_select
-
-    while self.ctx.alive and ui:action("peek"):size() ~= count do
-        handle_event_to_ui(
-            ui, "keypressed", keypressed:pop()
-        )
-        self.ctx:yield()
-    end
-
-    return ui:action("pop"):unpack()
 end
 
 function game:select_minion_spawn(user)
@@ -169,13 +162,12 @@ function game:pick_card_to_play()
         :latest()
 
     local function handle_cursor(next_cursor)
-        local nc = unpack(next_cursor)
-        if not nc then return end
-        state.cursor = nc
-        self.ui.card_select("set_revealed", {[nc] = true})
+        if next_cursor == nil then return end
+        state.cursor = next_cursor
+        self.ui.card_select("set_revealed", {[next_cursor] = true})
     end
 
-    handle_cursor{state.cursor}
+    handle_cursor(state.cursor)
 
     while self.ctx.alive and not confirm:peek() do
         move_cursor:pop():foreach(handle_cursor)
@@ -188,6 +180,10 @@ function game:pick_card_to_play()
     )
 
     return state.cursor
+end
+
+function game:pick_card_to_play()
+    return self.ui.action_pick:pick_card()
 end
 
 function game:select_target(filter)
@@ -283,6 +279,13 @@ function game:wait(time)
     while state.time > 0 do self.ctx:yield() end
 end
 
+function game:random_pick(...)
+    local options = list(...)
+    if options:empty() then return end
+    local i = self:rng(1, options:size())
+    return options[i]
+end
+
 function game:wait_until(condition)
     while not condition() do self.ctx:yield() end
 end
@@ -316,13 +319,44 @@ function game:battle_loop()
         constants.id.player, -2
     )
 
-    self:minion_phase(true)
-    self:minion_phase(false)
+    --self:minion_phase(true)
+    --self:minion_phase(false)
 
     while self.ctx.alive do
         local card = self:pick_card_to_play()
         self:play_card(card)
     end
+end
+
+function game:battle()
+    self:battle_begin()
+
+    while not self:done() do
+        self:round_begin()
+
+        self:player_turn()
+        self:enemy_turn()
+
+        self:round_end()
+    end
+
+    return self:battle_end()
+end
+
+function game:round_begin()
+    self:step(mechanics.ai.determine_next_move, constants.id.enemy)
+    self:step(mechanics.turn.increase_turn_counter)
+end
+
+function game:enemy_turn()
+    local ai = self:get_ai()
+end
+
+function game:enemy_turn()
+    local ai_move = mechanics.ai.get_ai_move(self.gamestate)
+    self:activate_all_minions(constants.id.enemy)
+    if ai_move then ai_move(self, self.gamestate, constants.id.enemy) end
+    self:step(mechanics.ai.clear_next_move, constants.id.enemy)
 end
 
 return game.create

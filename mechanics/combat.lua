@@ -119,4 +119,19 @@ function combat.intialize_battle(gs, player_master, enemy_master)
     return next_gs
 end
 
+function combat.rng(gs, ...)
+    local seed = gs:ensure(component.rng.seed)
+    local state = gs:get(component.rng.state)
+    local rng = love.math.newRandomGenerator(seed.low, seed.high)
+    if state then rng:setState(state) end
+
+    local num = rng(...)
+
+    local next_gs = gs:set(component.rng.state, rng:getState())
+
+    local info = {outcome = num}
+
+    return next_gs, info
+end
+
 return combat

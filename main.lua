@@ -11,15 +11,23 @@ function instance(c)
     return setmetatable({}, c)
 end
 
+function decorate(src, dst)
+    for key, val in pairs(src) do
+        dst[key] = val
+    end
+end
+
 love.graphics.setDefaultFilter("nearest", "nearest")
 
 local nw = require "nodeworks"
 local mock_battle = require "mock_battle"
-local particle_scene = require "particle_scene"
+--local particle_scene = require "particle_scene"
 
 function love.load()
     world = nw.ecs.world()
     world:push(mock_battle)
+
+    local rng = love.math.newRandomGenerator()
 end
 
 

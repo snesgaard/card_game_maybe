@@ -17,7 +17,7 @@ skills.shovel = card.skill{
     effect = function(game, user, card)
         local target = game:select_target()
         if not target then return true end
-        
+
         game:step(mechanics.combat.damage, user, target, card.damage or 0)
     end,
     image = atlas:get_frame("shovel2")

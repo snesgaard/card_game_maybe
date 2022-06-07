@@ -36,4 +36,15 @@ function component.attack(a) return a or 0 end
 
 function component.name(name) return name or "not-known-name" end
 
+component.rng = {}
+
+function component.rng.seed(low, high)
+    return {
+        low = low,
+        high = high
+    }
+end
+
+function component.rng.state(state) return state end
+
 return component

@@ -103,13 +103,13 @@ end
 function hand_render.set_selected(ctx, state, selected)
     return state
         :set("selected", selected)
-        :set("layout", compute_layout(state.cards, selected, state.revealed))
+        :set("layout", compute_layout(state.cards, selected, state.revealed, state.being_played))
 end
 
 function hand_render.set_revealed(ctx, state, revealed)
     return state
         :set("revealed", revealed)
-        :set("layout", compute_layout(state.cards, state.selected, revealed))
+        :set("layout", compute_layout(state.cards, state.selected, revealed, state.being_played))
 end
 
 function hand_render.draw(ctx, state)
