@@ -21,8 +21,39 @@ love.graphics.setDefaultFilter("nearest", "nearest")
 
 local nw = require "nodeworks"
 local mock_battle = require "mock_battle"
---local particle_scene = require "particle_scene"
 
+local layout_gui = require "ui.layout_render"
+
+local box_gui = inherit(layout_gui)
+
+function box_gui.init()
+    local state = layout_gui.init(0.032)
+
+    local layout = {
+        box = spatial(100, 100, 100, 100)
+    }
+
+    return layout_gui.update_layout(state, layout)
+end
+
+function box_gui.draw_element(ctx, state, rect)
+    gfx.setColor(1, 1, 1)
+    gfx.rectangle("line", rect:unpack())
+end
+
+function box_gui.draw(ctx, state)
+    layout_gui.draw(ctx, state, box_gui.draw_element)
+end
+
+function box_gui.mousepressed(ctx, state, x, y)
+    local box = state.layout.box
+
+    local layout = {
+        box = spatial(box.x, box.y, x - box.x, y - box.y)
+    }
+
+    return layout_gui.update_layout(state, layout)
+end
 
 function love.load()
     world = nw.ecs.world()
@@ -30,7 +61,8 @@ function love.load()
 
     local s1 = spatial(1, 2, 3, 4)
     local s2 = spatial(5, 6, 7, 8)
-    print(ease.linear(0.5, s1, s2 - s1, 1))
+
+    bgui = gui(box_gui)
 end
 
 
@@ -42,20 +74,26 @@ end
 
 function love.mousemoved(x, y, dx, dy)
     world:emit("mousemoved", x, y, dx, dy)
+
 end
 
 function love.mousepressed(x, y, button, isTouch)
     world:emit("mousepressed", x, y, button)
+
+    bgui("mousepressed", x, y)
 end
 
 function love.update(dt)
     world:emit("update", dt):spin()
     --collectgarbage()
+    bgui:update(dt)
 end
 
 function love.draw()
     world:emit("draw"):spin()
     world:emit("draw:ui"):spin()
+
+    bgui:draw()
 end
 
 function love.log(...)
