@@ -1,7 +1,7 @@
 --require "lovedebug"
 
-function class()
-    local c = {}
+function class(c)
+    local c = c or {}
     c.__index = c
     return c
 end
@@ -11,10 +11,10 @@ function instance(c)
     return setmetatable({}, c)
 end
 
-function decorate(src, dst)
-    for key, val in pairs(src) do
-        dst[key] = val
-    end
+function inherit(c, this)
+    local i = setmetatable(this or {}, c)
+    i.__index = i
+    return i
 end
 
 love.graphics.setDefaultFilter("nearest", "nearest")
@@ -23,11 +23,14 @@ local nw = require "nodeworks"
 local mock_battle = require "mock_battle"
 --local particle_scene = require "particle_scene"
 
+
 function love.load()
     world = nw.ecs.world()
     world:push(mock_battle)
 
-    local rng = love.math.newRandomGenerator()
+    local s1 = spatial(1, 2, 3, 4)
+    local s2 = spatial(5, 6, 7, 8)
+    print(ease.linear(0.5, s1, s2 - s1, 1))
 end
 
 

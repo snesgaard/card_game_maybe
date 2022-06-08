@@ -133,15 +133,23 @@ function game:spawn_minion(minion, user)
 end
 
 function game:pick_card_to_play()
-
     local cards = self.gamestate:get(component.hand, constants.id.player)
+    local formation = self.gamestate:get(component.formation, constants.id.field)
+    local indices = field_render.compute_all_actor_indices(self.gamestate)
+    print(dict(indices))
+
+    local minions = formation
+        :filter(function(index, id) return index < 0 end)
+        :values()
+        :sort(function(a, b) return indices[a] < indices[b] end)
+
     local memory = self.ui.card_select.memory or list()
 
     local valid_memory = memory:filter(function(card)
-        return cards:argfind(card)
+        return cards:argfind(card) or minions:argfind(card)
     end)
 
-    local keymap = ui.keymap_from_list(cards, "left", "right")
+    local keymap = ui.keymap_from_matrix({minions, cards}, true)
 
     local state = {cursor = valid_memory:head()}
 
@@ -160,9 +168,14 @@ function game:pick_card_to_play()
         :latest()
 
     local function handle_cursor(next_cursor)
-        if next_cursor == nil then return end
         state.cursor = next_cursor
-        self.ui.card_select("set_revealed", {[next_cursor] = true})
+        if next_cursor == nil then
+            self.ui.card_select("set_revealed", {})
+            self.ui.actor_field("set_highlight", {})
+        else
+            self.ui.card_select("set_revealed", {[next_cursor] = true})
+            self.ui.actor_field("set_highlight", {[next_cursor] = true})
+        end
     end
 
     handle_cursor(state.cursor)
@@ -173,11 +186,13 @@ function game:pick_card_to_play()
         self.ctx:yield()
     end
 
+    local cursor = state.cursor
     self.ui.card_select.memory = list(
-        state.cursor, keymap.right[state.cursor], keymap.left[state.cursor]
+        cursor, keymap.right[cursor], keymap.left[cursor]
     )
+    handle_cursor(nil)
 
-    return state.cursor
+    return cursor
 end
 
 function game:select_target(filter)
@@ -262,6 +277,12 @@ function game:minion_phase(player_turn)
     end
 end
 
+function game:attack_with_minion(minion)
+    local promise = self.ui.actor_field("animate_attack", minion)
+    self:wait_until(promise)
+    self.ui.actor_field("reset_position", minion)
+end
+
 function game:wait(time)
     local state = {time=time}
     local update = self.ctx:listen("update")
@@ -312,15 +333,30 @@ function game:battle_loop()
         constants.id.player, -2
     )
 
-    self.ui.actor_field("set_highlight", {[info.id] = true})
+    --self.ui.actor_field("set_highlight", {[info.id] = true})
 
     --self:minion_phase(true)
     --self:minion_phase(false)
 
     while self.ctx.alive do
         local card = self:pick_card_to_play()
-        self:play_card(card)
-        self:minion_phase(true)
+        self:execute_player_action(card)
+        --self:minion_phase(true)
+    end
+end
+
+function game:execute_player_action(action)
+    local cards = self.gamestate:get(component.hand, constants.id.player)
+    local formation = self.gamestate:get(component.formation, constants.id.field)
+    local minions = formation
+        :filter(function(index, id) return index < 0 end)
+        :values()
+        :reverse()
+
+    if minions:argfind(action) then
+        return self:attack_with_minion(action)
+    else
+        return self:play_card(action)
     end
 end
 

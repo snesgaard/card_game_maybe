@@ -45,7 +45,7 @@ function field_render.compute_all_actor_indices(gamestate)
     local formation = gamestate:get(component.formation, constants.id.field)
     local actor_index = {}
 
-    for id, index in pairs(formation) do
+    for index, id in pairs(formation) do
         actor_index[id] = index
     end
 
