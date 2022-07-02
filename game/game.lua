@@ -211,14 +211,22 @@ function game:play_minion(card)
     )
 end
 
+local function invoke_skill(game, id, card, target, ...)
+    if not target then return true end
+    if not card.effect then return end
+
+    card.effect(game, constants.id.player, card, target, ...)
+end
+
 function game:play_skill(card)
     if card.type ~= "skill" then return end
 
-    if not card.effect then return end
+    if not card.target then return end
 
-    local was_interrupted = card.effect(self, constants.id.player, card)
-
-    return was_interrupted
+    return invoke_skill(
+        self, constants.id.player, card,
+        card.target(self, constants.id.player, card)
+    )
 end
 
 function game:play_card(card)

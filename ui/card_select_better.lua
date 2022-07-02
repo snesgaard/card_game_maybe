@@ -54,7 +54,7 @@ local function compute_layout(cards, selected, revealed, being_played)
 
     if being_played then
         local cw = render.card_size().w
-        layout[being_played] = vec2(w / 2 - cw / 2, 25)
+        layout[being_played] = vec2(25, 25)
     end
 
     return layout
