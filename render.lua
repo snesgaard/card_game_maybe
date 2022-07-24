@@ -1,5 +1,5 @@
 local nw = require "nodeworks"
-local constants = require "game.constants"
+local constants = require "constants"
 
 local read = {}
 
@@ -229,9 +229,10 @@ local function draw_card(x, y, card_data)
     local image = card_data.image
     local s = constants.scale
     gfx.push()
-    gfx.translate(x, y - frame.slices.body.y)
+    gfx.translate(x, y)
+        gfx.circle("fill", 0, 0, 2)
     gfx.scale(s)
-    gfx.translate(-frame.slices.body.x, -frame.slices.body.y)
+    gfx.translate(-frame.slices.body.x - frame.slices.body.w / 2, -frame.slices.body.y - frame.slices.body.h)
 
 
     local bg_color = gfx.hex2color("9567c1")
@@ -239,7 +240,9 @@ local function draw_card(x, y, card_data)
     gfx.rectangle("fill", frame.slices.image:unpack())
     gfx.setColor(1, 1, 1)
 
-    image:draw(frame.slices.image.x, frame.slices.image.y)
+    if image then
+        image:draw(frame.slices.image.x, frame.slices.image.y)
+    end
     frame:draw(0, 0)
 
     local text_slice = frame.slices.text
