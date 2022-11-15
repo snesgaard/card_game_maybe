@@ -17,18 +17,35 @@ function inherit(c, this)
     return i
 end
 
+function decorate(dst, src)
+    for key, val in pairs(src) do
+        dst[key] = dst[key] or val
+    end
+
+    return dst
+end
+
 love.graphics.setDefaultFilter("nearest", "nearest")
 
 nw = require "nodeworks"
-render = require "render"
 constants = require "constants"
 component = require "component"
-require "world_global"
+drawable = require "drawable"
+Gamestate = require "gamestate"
+require("decorator"):apply()
+
+Frame.slice_to_pos = Spatial.centerbottom
 
 function love.load()
     world = nw.ecs.world()
+    world:push(require "system.render")
 
-    world:push(require "system.player_action_ui")
+    local gamestate = Gamestate.create()
+    local hand = list()
+    for i = 1, 8 do table.insert(hand, gamestate:entity()) end
+    gamestate:player():set(component.hand, hand)
+
+    world:emit("shown_gamestate", gamestate)
 end
 
 function love.keypressed(key)
